@@ -18,8 +18,7 @@ export default function Home() {
           <a href="/" className="home-logo">
             <div className="home-logo-icon">🌿</div>
             <div className="home-logo-text">
-              <span className="home-logo-title">Village Numérique</span>
-              <span className="home-logo-subtitle">Résistant</span>
+              <span className="home-logo-title">Recondi_Tech.apk</span>
             </div>
           </a>
 
@@ -27,30 +26,10 @@ export default function Home() {
             <button onClick={() => navigate('/a-propos')} className="home-nav-link">
               À propos
             </button>
-            <button onClick={() => navigate('/game')} className="home-nav-btn">
-              Jouer
-            </button>
           </nav>
         </div>
       </header>
 
-      {/* Hero */}
-      <div className="home-hero">
-        <p className="home-hero-label">La Nuit de l'Info 2025</p>
-        <h1 className="home-hero-title">
-          Numérique <span>Responsable</span>
-        </h1>
-      </div>
-
-      {/* Scroll indicator */}
-      <div className="home-scroll">
-        <div className="home-scroll-box">
-          <div className="home-scroll-mouse">
-            <div className="home-scroll-dot"></div>
-          </div>
-          <span className="home-scroll-text">Cliquez sur l'écran pour jouer</span>
-        </div>
-      </div>
 
       {/* Footer */}
       <footer className="home-footer">

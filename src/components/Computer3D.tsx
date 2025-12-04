@@ -1,7 +1,3 @@
-/**
- * Composant 3D d'un ordinateur - Version PLEIN ÉCRAN immersive
- * L'ordinateur est central et on rentre dedans pour accéder au jeu
- */
 import { useRef, useState, useCallback, Suspense } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { 
@@ -71,8 +67,7 @@ function Screen({ onClick, hovered, setHovered }: {
       >
         <planeGeometry args={[2.6, 1.7]} />
         <meshStandardMaterial
-          color="#0a1628"
-          emissive="#22c55e"
+          color="#1E1E1E"
           emissiveIntensity={0.35}
         />
       </mesh>
@@ -83,23 +78,23 @@ function Screen({ onClick, hovered, setHovered }: {
         <Text
           position={[-1.1, 0.55, 0]}
           fontSize={0.07}
-          color="#22c55e"
+          color="#00FF41"
           anchorX="left"
         >
-          {`$ ./nird_village --init`}
+          {`$ ./la_nuit_de_l_info_2025 --init`}
         </Text>
         <Text
           position={[-1.1, 0.42, 0]}
           fontSize={0.06}
-          color="#16a34a"
+          color="#00FF41"
           anchorX="left"
         >
-          {`> Loading sustainable computing...`}
+          {`> ./nird_village --init`}
         </Text>
         <Text
           position={[-1.1, 0.30, 0]}
           fontSize={0.06}
-          color="#16a34a"
+          color="#00FF41"
           anchorX="left"
         >
           {`> Recycled hardware: READY`}
@@ -107,7 +102,7 @@ function Screen({ onClick, hovered, setHovered }: {
         <Text
           position={[-1.1, 0.18, 0]}
           fontSize={0.06}
-          color="#22c55e"
+          color="#00FF41"
           anchorX="left"
         >
           {`> System operational ✓`}
@@ -117,29 +112,19 @@ function Screen({ onClick, hovered, setHovered }: {
         <Text
           position={[0, -0.05, 0]}
           fontSize={0.16}
-          color="#22c55e"
+          color="#00FF41"
           anchorX="center"
           anchorY="middle"
           letterSpacing={0.05}
         >
-          VILLAGE NUMÉRIQUE
-        </Text>
-        <Text
-          position={[0, -0.25, 0]}
-          fontSize={0.11}
-          color="#16a34a"
-          anchorX="center"
-          anchorY="middle"
-          letterSpacing={0.1}
-        >
-          RÉSISTANT
+          Recondi_Tech.apk
         </Text>
 
         {/* Instruction */}
         <Text
           position={[0, -0.50, 0]}
           fontSize={0.055}
-          color={hovered ? "#ffffff" : "#22c55e"}
+          color={hovered ? "#22c55e" : "#00FF41"}
           anchorX="center"
           anchorY="middle"
         >
@@ -185,7 +170,7 @@ function ComputerModel({ onScreenClick, isZooming }: ComputerModelProps) {
         scale={7}
         size={3}
         speed={0.25}
-        color="#22c55e"
+        color="#00FF41"
         opacity={0.5}
       />
 
@@ -210,16 +195,6 @@ function ComputerModel({ onScreenClick, isZooming }: ComputerModelProps) {
           />
         </mesh>
 
-        {/* Ligne lumineuse en bas du cadre */}
-        <mesh position={[0, -0.65, 0.08]}>
-          <boxGeometry args={[2.8, 0.02, 0.01]} />
-          <meshStandardMaterial 
-            color="#22c55e"
-            emissive="#22c55e"
-            emissiveIntensity={hovered ? 1.2 : 0.6}
-          />
-        </mesh>
-
         {/* Écran interactif */}
         <Screen 
           onClick={onScreenClick} 
@@ -227,33 +202,22 @@ function ComputerModel({ onScreenClick, isZooming }: ComputerModelProps) {
           setHovered={setHovered} 
         />
 
-        {/* Pied du moniteur */}
-        <RoundedBox args={[0.18, 0.55, 0.12]} radius={0.03} position={[0, -0.58, 0]}>
-          <meshStandardMaterial color="#1e293b" metalness={0.85} roughness={0.15} />
-        </RoundedBox>
-
         {/* Base du moniteur */}
         <mesh position={[0, -0.88, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.55, 0.65, 0.04, 32]} />
           <meshStandardMaterial color="#1e293b" metalness={0.85} roughness={0.15} />
-        </mesh>
-        
-        {/* LED indicateur */}
-        <mesh position={[0, -0.48, 0.08]}>
-          <sphereGeometry args={[0.018, 16, 16]} />
-          <meshStandardMaterial 
-            color="#22c55e"
-            emissive="#22c55e"
-            emissiveIntensity={2.5}
-          />
         </mesh>
       </Float>
 
       {/* === CLAVIER === */}
       <group position={[0, -0.95, 0.85]}>
         <RoundedBox args={[2.2, 0.07, 0.65]} radius={0.02}>
-          <meshStandardMaterial color="#1e293b" metalness={0.65} roughness={0.25} />
-        </RoundedBox>
+        <meshStandardMaterial 
+          color="#0f172a"
+          metalness={0.9}
+          roughness={0.1}
+        />
+</RoundedBox>
         
         {/* Touches avec rétroéclairage */}
         {Array.from({ length: 4 }).map((_, row) =>
@@ -263,10 +227,10 @@ function ComputerModel({ onScreenClick, isZooming }: ComputerModelProps) {
               position={[-0.95 + col * 0.14, 0.045, -0.22 + row * 0.14]}
             >
               <boxGeometry args={[0.11, 0.025, 0.11]} />
-              <meshStandardMaterial
+              <meshStandardMaterial 
                 color="#0f172a"
-                emissive={['#22c55e', '#06b6d4', '#8b5cf6', '#f59e0b'][(row + col) % 4]}
-                emissiveIntensity={0.12}
+                metalness={0.9}
+                roughness={0.1}
               />
             </mesh>
           ))
@@ -276,75 +240,20 @@ function ComputerModel({ onScreenClick, isZooming }: ComputerModelProps) {
       {/* === SOURIS === */}
       <group position={[1.4, -0.95, 0.85]}>
         <RoundedBox args={[0.22, 0.055, 0.38]} radius={0.04}>
-          <meshStandardMaterial color="#1e293b" metalness={0.7} roughness={0.2} />
+          <meshStandardMaterial color="#0f172a" metalness={0.7} roughness={0.2} />
         </RoundedBox>
         {/* LED souris */}
         <mesh position={[0, 0.035, -0.04]}>
           <boxGeometry args={[0.14, 0.012, 0.08]} />
-          <meshStandardMaterial
-            color="#22c55e"
-            emissive="#22c55e"
-            emissiveIntensity={0.7}
+          <meshStandardMaterial 
+            color="#0f172a"
+            metalness={0.9}
+            roughness={0.1}
           />
         </mesh>
       </group>
 
-      {/* === TOUR PC (côté gauche) === */}
-      <group position={[-2.1, -0.15, 0]}>
-        <Float speed={1} rotationIntensity={0.008} floatIntensity={0.025}>
-          <RoundedBox args={[0.65, 1.5, 0.45]} radius={0.04}>
-            <meshStandardMaterial 
-              color="#0f172a" 
-              metalness={0.88} 
-              roughness={0.12}
-            />
-          </RoundedBox>
-          
-          {/* Panneau latéral avec vitrine */}
-          <mesh position={[0.33, 0.08, 0]}>
-            <planeGeometry args={[0.45, 1.1]} />
-            <meshStandardMaterial 
-              color="#1e293b"
-              transparent
-              opacity={0.25}
-              metalness={0.9}
-              roughness={0.1}
-            />
-          </mesh>
-
-          {/* Ventilateur RGB */}
-          <mesh position={[0.34, 0.18, 0]}>
-            <ringGeometry args={[0.07, 0.16, 32]} />
-            <meshStandardMaterial
-              color="#0f172a"
-              emissive="#22c55e"
-              emissiveIntensity={0.45}
-            />
-          </mesh>
-
-          {/* Bandes LED RGB verticales */}
-          {[-0.45, -0.15, 0.15, 0.45].map((y, i) => (
-            <mesh key={i} position={[0.34, y, 0]}>
-              <boxGeometry args={[0.008, 0.07, 0.35]} />
-              <meshStandardMaterial
-                color={['#22c55e', '#06b6d4', '#8b5cf6', '#ec4899'][i]}
-                emissive={['#22c55e', '#06b6d4', '#8b5cf6', '#ec4899'][i]}
-                emissiveIntensity={0.55}
-              />
-            </mesh>
-          ))}
-
-          {/* Bouton power */}
-          <mesh position={[0.34, 0.65, 0]}>
-            <circleGeometry args={[0.025, 16]} />
-            <meshStandardMaterial
-              color="#22c55e"
-              emissive="#22c55e"
-              emissiveIntensity={1.8}
-            />
-          </mesh>
-        </Float>
-      </group>
+      
     </group>
   )
 }
@@ -370,11 +279,16 @@ export default function Computer3D({ onEnterGame }: Computer3DProps) {
   return (
     <div className="w-full h-full">
       <Canvas 
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: true }}
         camera={{ position: [0, 0, 4.5], fov: 50 }}
+        style={{ 
+          background: '#0000',
+          position: 'relative',
+          zIndex: 1 
+         }}
       >
         {/* Éclairage */}
-        <ambientLight intensity={0.15} />
+        <ambientLight intensity={0.9} />
         <directionalLight position={[5, 5, 5]} intensity={0.7} />
         <pointLight position={[-3, 2, 4]} intensity={0.55} color="#22c55e" />
         <pointLight position={[3, -1, 2]} intensity={0.35} color="#06b6d4" />
@@ -387,7 +301,7 @@ export default function Computer3D({ onEnterGame }: Computer3DProps) {
         />
 
         {/* Environnement pour reflets */}
-        <Environment preset="night" />
+        <Environment preset="sunset" />
 
         {/* Modèle avec loader */}
         <Suspense fallback={<Loader />}>
@@ -402,14 +316,28 @@ export default function Computer3D({ onEnterGame }: Computer3DProps) {
       {isZooming && (
         <div 
           className="fixed inset-0 pointer-events-none z-50"
-          style={{ animation: 'zoomFlash 2s ease-in-out forwards' }}
+          style={{ animation: 'terminalBoot 1.8s ease-in-out forwards' }}
         >
           <style>{`
-            @keyframes zoomFlash {
-              0% { background: transparent; }
-              70% { background: transparent; }
-              85% { background: rgba(34, 197, 94, 0.8); }
-              100% { background: black; }
+            @keyframes terminalBoot {
+              0% {
+                background: transparent;
+                opacity: 0;
+              }
+              40% {
+                background: rgba(0, 255, 65, 0.10);
+                opacity: 0.4;
+              }
+              75% {
+                background: rgba(0, 255, 65, 0.22);
+                opacity: 0.7;
+                filter: contrast(130%) brightness(120%);
+              }
+              100% {
+                background: black;
+                opacity: 1;
+                filter: contrast(100%) brightness(100%);
+              }
             }
           `}</style>
         </div>
