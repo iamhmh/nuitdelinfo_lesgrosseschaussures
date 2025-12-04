@@ -1,18 +1,14 @@
-/**
- * Configuration Phaser 3 - Jeu isométrique style Zelda
- */
 import Phaser from 'phaser'
 import { BootScene } from './scenes/BootScene.ts'
 import { MainScene } from './scenes/MainScene.ts'
 import { UIScene } from './scenes/UIScene.ts'
 
-// Configuration du jeu Phaser
 export const createPhaserConfig = (parent: HTMLElement): Phaser.Types.Core.GameConfig => ({
   type: Phaser.WEBGL,
   parent: parent,
   width: 1280,
   height: 720,
-  backgroundColor: '#4a7c59',  // Vert herbe pour masquer les zones transparentes
+  backgroundColor: '#4a7c59',
   physics: {
     default: 'arcade',
     arcade: {

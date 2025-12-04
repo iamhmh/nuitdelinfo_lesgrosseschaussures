@@ -1,5 +1,5 @@
 /**
- * Scène principale du jeu - Ville procédurale détaillée
+ * MainScene - Ville procédurale avec layout cohérent
  */
 import Phaser from 'phaser'
 
@@ -9,7 +9,6 @@ interface Building {
   type: 'enterprise' | 'workshop' | 'school' | 'house' | 'shop' | 'apartment' | 'office'
   name: string
   sprite?: Phaser.GameObjects.Image
-  interactZone?: Phaser.GameObjects.Zone
 }
 
 interface CollectibleComputer {
@@ -20,32 +19,45 @@ interface CollectibleComputer {
   interactIcon?: Phaser.GameObjects.Image
 }
 
+interface NPC {
+  sprite: Phaser.GameObjects.Sprite
+  type: 'citizen' | 'woman' | 'technician'
+  isMoving: boolean
+  targetX?: number
+  targetY?: number
+  speed: number
+  direction: 'left' | 'right'
+}
+
 interface Car {
   sprite: Phaser.GameObjects.Image
   direction: 'h' | 'v'
   speed: number
+  lane: number
 }
 
 export class MainScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite
-  private playerSpeed: number = 200
+  private playerSpeed: number = 180
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
-  private wasd!: {
-    W: Phaser.Input.Keyboard.Key
-    A: Phaser.Input.Keyboard.Key
-    S: Phaser.Input.Keyboard.Key
-    D: Phaser.Input.Keyboard.Key
-  }
+  private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key }
   private interactKey!: Phaser.Input.Keyboard.Key
   
+  // Map dimensions - Grille bien définie
   private mapWidth: number = 2560
   private mapHeight: number = 1920
   private tileSize: number = 64
   
+  // Layout de la ville (en tiles)
+  // Routes horizontales: y = 7, 15, 23 (en tiles, donc * 64 = pixels)
+  // Routes verticales: x = 10, 20, 30 (en tiles)
+  private roadTilesH = [7, 15, 23] // Lignes de routes horizontales
+  private roadTilesV = [10, 20, 30] // Colonnes de routes verticales
+  
   private buildings: Building[] = []
   private computers: CollectibleComputer[] = []
-  private decorations: Phaser.GameObjects.Image[] = []
   private cars: Car[] = []
+  private npcs: NPC[] = []
   
   private collectedCount: number = 0
   private reconditionedCount: number = 0
@@ -53,145 +65,206 @@ export class MainScene extends Phaser.Scene {
   private inventory: number = 0
   private nearBuilding: Building | null = null
   private nearComputer: CollectibleComputer | null = null
+  
+  // Debug
+  private debugText!: Phaser.GameObjects.Text
 
   constructor() {
     super({ key: 'MainScene' })
   }
 
   create(): void {
-    this.createWorld()
+    this.createTerrain()
+    this.createBuildings()
+    this.createComputers()
+    this.createCars()
+    this.createNPCs()
+    this.createVegetation()
     this.createPlayer()
     this.setupControls()
     this.setupCamera()
     this.createAnimations()
     this.setupEvents()
-  }
-
-  private createWorld(): void {
-    // Fond d'herbe
-    for (let x = 0; x < this.mapWidth; x += this.tileSize) {
-      for (let y = 0; y < this.mapHeight; y += this.tileSize) {
-        const variation = Math.random()
-        let grassType = 'grass'
-        if (variation > 0.85) grassType = 'grass_dark'
-        else if (variation > 0.75) grassType = 'grass_light'
-        this.add.image(x + 32, y + 32, grassType)
-      }
-    }
-    
-    this.createRoadNetwork()
-    this.createBuildings()
-    this.createComputers()
-    this.createCars()
-    this.createDecorations()
-    this.createStreetFurniture()
+    this.createDebugUI()
     
     this.physics.world.setBounds(0, 0, this.mapWidth, this.mapHeight)
   }
 
-  private createRoadNetwork(): void {
-    // Routes horizontales
-    const horizontalRoads = [480, 960, 1440]
-    horizontalRoads.forEach(roadY => {
-      for (let x = 0; x < this.mapWidth; x += this.tileSize) {
-        this.add.image(x + 32, roadY, 'road_h')
-        this.add.image(x + 32, roadY + 64, 'road_h')
-        this.add.image(x + 32, roadY - 64, 'sidewalk_border').setDepth(1)
-        this.add.image(x + 32, roadY + 128, 'sidewalk_border').setDepth(1)
+  // ==================== TERRAIN ====================
+  private createTerrain(): void {
+    const tilesX = Math.ceil(this.mapWidth / this.tileSize)
+    const tilesY = Math.ceil(this.mapHeight / this.tileSize)
+    
+    // Dessiner l'herbe partout d'abord
+    for (let tx = 0; tx < tilesX; tx++) {
+      for (let ty = 0; ty < tilesY; ty++) {
+        const px = tx * this.tileSize + 32
+        const py = ty * this.tileSize + 32
+        const grassType = Math.random() > 0.85 ? 'grass_dark' : 'grass'
+        this.add.image(px, py, grassType).setDepth(0)
+      }
+    }
+    
+    // Dessiner les routes et trottoirs
+    this.createRoads()
+  }
+
+  private createRoads(): void {
+    const tilesX = Math.ceil(this.mapWidth / this.tileSize)
+    const tilesY = Math.ceil(this.mapHeight / this.tileSize)
+    
+    // Routes horizontales (2 tiles de large chacune)
+    this.roadTilesH.forEach(roadY => {
+      for (let tx = 0; tx < tilesX; tx++) {
+        const px = tx * this.tileSize + 32
+        // Trottoir haut
+        this.add.image(px, (roadY - 1) * this.tileSize + 32, 'sidewalk').setDepth(1)
+        // Route (2 voies)
+        this.add.image(px, roadY * this.tileSize + 32, 'road_h').setDepth(1)
+        this.add.image(px, (roadY + 1) * this.tileSize + 32, 'road').setDepth(1)
+        // Trottoir bas
+        this.add.image(px, (roadY + 2) * this.tileSize + 32, 'sidewalk').setDepth(1)
       }
     })
     
-    // Routes verticales
-    const verticalRoads = [640, 1280, 1920]
-    verticalRoads.forEach(roadX => {
-      for (let y = 0; y < this.mapHeight; y += this.tileSize) {
-        this.add.image(roadX, y + 32, 'road_v')
-        this.add.image(roadX + 64, y + 32, 'road_v')
-        this.add.image(roadX - 64, y + 32, 'sidewalk').setDepth(1)
-        this.add.image(roadX + 128, y + 32, 'sidewalk').setDepth(1)
+    // Routes verticales (2 tiles de large chacune)
+    this.roadTilesV.forEach(roadX => {
+      for (let ty = 0; ty < tilesY; ty++) {
+        const py = ty * this.tileSize + 32
+        
+        // Ne pas dessiner sur les intersections (déjà fait par routes H)
+        const isHRoad = this.roadTilesH.some(h => ty >= h - 1 && ty <= h + 2)
+        if (isHRoad) continue
+        
+        // Trottoir gauche
+        this.add.image((roadX - 1) * this.tileSize + 32, py, 'sidewalk').setDepth(1)
+        // Route (2 voies)
+        this.add.image(roadX * this.tileSize + 32, py, 'road_v').setDepth(1)
+        this.add.image((roadX + 1) * this.tileSize + 32, py, 'road').setDepth(1)
+        // Trottoir droit
+        this.add.image((roadX + 2) * this.tileSize + 32, py, 'sidewalk').setDepth(1)
       }
     })
     
     // Intersections
-    horizontalRoads.forEach(roadY => {
-      verticalRoads.forEach(roadX => {
+    this.roadTilesH.forEach(roadY => {
+      this.roadTilesV.forEach(roadX => {
+        // Centre intersection
         for (let dx = 0; dx < 2; dx++) {
           for (let dy = 0; dy < 2; dy++) {
-            this.add.image(roadX + dx * 64, roadY + dy * 64, 'road_cross')
+            const px = (roadX + dx) * this.tileSize + 32
+            const py = (roadY + dy) * this.tileSize + 32
+            this.add.image(px, py, 'road_cross').setDepth(1)
           }
         }
-        this.add.image(roadX - 64, roadY + 32, 'crosswalk_v').setDepth(2)
-        this.add.image(roadX + 128, roadY + 32, 'crosswalk_v').setDepth(2)
-        this.add.image(roadX + 32, roadY - 64, 'crosswalk_h').setDepth(2)
-        this.add.image(roadX + 32, roadY + 128, 'crosswalk_h').setDepth(2)
+        
+        // Passages piétons
+        this.add.image((roadX - 1) * this.tileSize + 32, roadY * this.tileSize + 32, 'crosswalk_v').setDepth(2)
+        this.add.image((roadX - 1) * this.tileSize + 32, (roadY + 1) * this.tileSize + 32, 'crosswalk_v').setDepth(2)
+        this.add.image((roadX + 2) * this.tileSize + 32, roadY * this.tileSize + 32, 'crosswalk_v').setDepth(2)
+        this.add.image((roadX + 2) * this.tileSize + 32, (roadY + 1) * this.tileSize + 32, 'crosswalk_v').setDepth(2)
+        
+        // Feux tricolores sur les trottoirs des intersections
+        const trafficLightPositions = [
+          { x: roadX - 1, y: roadY - 1 },
+          { x: roadX + 2, y: roadY - 1 },
+          { x: roadX - 1, y: roadY + 2 },
+          { x: roadX + 2, y: roadY + 2 },
+        ]
+        trafficLightPositions.forEach(pos => {
+          const px = pos.x * this.tileSize + 32
+          const py = pos.y * this.tileSize + 32
+          this.add.image(px, py, 'traffic_light').setOrigin(0.5, 1).setDepth(py + 50)
+        })
       })
-    })
-    
-    // Parkings
-    const parkings = [
-      { x: 100, y: 550, w: 4, h: 2 },
-      { x: 1700, y: 200, w: 3, h: 2 },
-      { x: 2200, y: 1050, w: 4, h: 2 },
-    ]
-    parkings.forEach(area => {
-      for (let px = 0; px < area.w; px++) {
-        for (let py = 0; py < area.h; py++) {
-          this.add.image(area.x + px * 64, area.y + py * 64, 'parking')
-        }
-      }
     })
   }
 
+  // ==================== BÂTIMENTS ====================
   private createBuildings(): void {
-    this.buildings = [
-      // Nord - Entreprises
-      { x: 200, y: 380, type: 'enterprise', name: 'TechCorp Solutions' },
-      { x: 450, y: 350, type: 'office', name: 'Digital Services' },
-      { x: 850, y: 380, type: 'enterprise', name: 'DataSoft Analytics' },
-      { x: 1100, y: 350, type: 'apartment', name: 'Résidence Les Pins' },
-      { x: 1500, y: 380, type: 'enterprise', name: 'InfoSys Global' },
-      { x: 1750, y: 350, type: 'office', name: 'Cloud Nine Tech' },
-      { x: 2150, y: 380, type: 'enterprise', name: 'ByteForge Inc' },
-      { x: 2400, y: 350, type: 'shop', name: 'Café du Coin' },
-      
-      // Centre - Zone mixte + NIRD
-      { x: 200, y: 850, type: 'house', name: 'Villa Rose' },
-      { x: 400, y: 880, type: 'shop', name: 'Boulangerie' },
-      { x: 850, y: 850, type: 'apartment', name: 'Immeuble Central' },
-      { x: 1280, y: 800, type: 'workshop', name: '🔧 Atelier NIRD' },
-      { x: 1600, y: 850, type: 'shop', name: 'Librairie' },
-      { x: 1850, y: 880, type: 'house', name: 'Maison Bleue' },
-      { x: 2150, y: 850, type: 'apartment', name: 'Les Terrasses' },
-      { x: 2400, y: 880, type: 'shop', name: 'Pharmacie' },
-      
-      // Sud - Écoles
-      { x: 200, y: 1340, type: 'school', name: '📚 École Jean Jaurès' },
-      { x: 500, y: 1380, type: 'house', name: 'Maison Verte' },
-      { x: 850, y: 1340, type: 'school', name: '📚 Collège Victor Hugo' },
-      { x: 1100, y: 1380, type: 'house', name: 'Le Pavillon' },
-      { x: 1500, y: 1340, type: 'school', name: '📚 Lycée Marie Curie' },
-      { x: 1750, y: 1380, type: 'apartment', name: 'Résidence Sud' },
-      { x: 2100, y: 1340, type: 'school', name: '📚 École Montessori' },
-      { x: 2400, y: 1380, type: 'house', name: 'Le Chalet' },
-      
-      // Parc sud
-      { x: 150, y: 1780, type: 'house', name: 'Maison du Gardien' },
-      { x: 2450, y: 1780, type: 'shop', name: 'Kiosque du Parc' },
-    ]
+    // ZONE ENTREPRISES - Haut de la carte, groupées ensemble (aspect rigide)
+    // Entre les routes y=7 et y=0, et autour de x=10-30
+    const enterpriseZone = { minX: 2, maxX: 8, minY: 2, maxY: 5 }
+    this.addBuildingsInZone([
+      { tx: 2, ty: 3, type: 'enterprise', name: 'TechCorp Solutions' },
+      { tx: 5, ty: 2, type: 'enterprise', name: 'DataSoft Analytics' },
+      { tx: 5, ty: 4, type: 'office', name: 'ByteCloud Services' },
+      { tx: 8, ty: 3, type: 'enterprise', name: 'InfoSys Global' },
+    ])
     
+    // Deuxième zone entreprises (droite)
+    this.addBuildingsInZone([
+      { tx: 23, ty: 2, type: 'enterprise', name: 'GreenTech Inc' },
+      { tx: 26, ty: 3, type: 'enterprise', name: 'EcoData Systems' },
+      { tx: 23, ty: 4, type: 'office', name: 'Digital Factory' },
+      { tx: 26, ty: 5, type: 'office', name: 'Innovation Hub' },
+    ])
+    
+    // ATELIER NIRD - Centre de la carte (entre routes)
+    this.buildings.push({
+      x: 15 * this.tileSize,
+      y: 12 * this.tileSize,
+      type: 'workshop',
+      name: '🔧 Atelier NIRD - Reconditionnement Linux'
+    })
+    
+    // ÉCOLES - Bas de la carte, espacées
+    this.addBuildingsInZone([
+      { tx: 3, ty: 26, type: 'school', name: '📚 École Primaire Jean Jaurès' },
+      { tx: 14, ty: 27, type: 'school', name: '📚 Collège Victor Hugo' },
+      { tx: 25, ty: 26, type: 'school', name: '📚 Lycée Marie Curie' },
+      { tx: 36, ty: 27, type: 'school', name: '📚 École Montessori' },
+    ])
+    
+    // BÂTIMENTS NEUTRES - Remplissage de l'espace
+    // Zone résidentielle gauche
+    this.addBuildingsInZone([
+      { tx: 2, ty: 10, type: 'house', name: 'Maison Rose' },
+      { tx: 5, ty: 11, type: 'apartment', name: 'Résidence du Parc' },
+      { tx: 8, ty: 10, type: 'shop', name: 'Boulangerie Martin' },
+      { tx: 2, ty: 18, type: 'house', name: 'Villa Bleue' },
+      { tx: 5, ty: 19, type: 'shop', name: 'Café du Centre' },
+      { tx: 8, ty: 18, type: 'apartment', name: 'Les Jardins' },
+    ])
+    
+    // Zone résidentielle centre
+    this.addBuildingsInZone([
+      { tx: 13, ty: 10, type: 'shop', name: 'Librairie Pages' },
+      { tx: 17, ty: 11, type: 'apartment', name: 'Immeuble Central' },
+      { tx: 13, ty: 18, type: 'house', name: 'Pavillon Vert' },
+      { tx: 17, ty: 19, type: 'shop', name: 'Pharmacie Santé' },
+    ])
+    
+    // Zone résidentielle droite
+    this.addBuildingsInZone([
+      { tx: 33, ty: 10, type: 'apartment', name: 'Les Terrasses' },
+      { tx: 36, ty: 11, type: 'house', name: 'Maison du Lac' },
+      { tx: 33, ty: 18, type: 'shop', name: 'Épicerie Bio' },
+      { tx: 36, ty: 19, type: 'house', name: 'Chalet Moderne' },
+    ])
+    
+    // Créer les sprites
     this.buildings.forEach(building => {
-      const textureKey = building.type === 'office' ? 'building_office' : `building_${building.type}`
-      
+      const textureKey = `building_${building.type}`
       building.sprite = this.add.image(building.x, building.y, textureKey)
         .setOrigin(0.5, 1)
         .setDepth(building.y)
-      
-      const zoneWidth = building.type === 'workshop' ? 200 : 150
-      building.interactZone = this.add.zone(building.x, building.y + 20, zoneWidth, 100)
-      this.physics.add.existing(building.interactZone, true)
+        .setScale(1.2) // Bâtiments plus grands
     })
   }
 
+  private addBuildingsInZone(defs: Array<{tx: number, ty: number, type: Building['type'], name: string}>): void {
+    defs.forEach(def => {
+      this.buildings.push({
+        x: def.tx * this.tileSize + this.tileSize / 2,
+        y: def.ty * this.tileSize + this.tileSize,
+        type: def.type,
+        name: def.name
+      })
+    })
+  }
+
+  // ==================== ORDINATEURS ====================
   private createComputers(): void {
     const techBuildings = this.buildings.filter(b => 
       b.type === 'enterprise' || b.type === 'office'
@@ -200,29 +273,37 @@ export class MainScene extends Phaser.Scene {
     techBuildings.forEach(building => {
       const numComputers = 2 + Math.floor(Math.random() * 2)
       for (let i = 0; i < numComputers; i++) {
-        const offsetX = (Math.random() - 0.5) * 150
-        const offsetY = 60 + Math.random() * 50
-        this.computers.push({
-          x: building.x + offsetX,
-          y: building.y + offsetY,
-          collected: false,
-        })
+        // Position devant le bâtiment (sur l'herbe)
+        const offsetX = (Math.random() - 0.5) * 100
+        const offsetY = 40 + Math.random() * 40
+        
+        const compX = building.x + offsetX
+        const compY = building.y + offsetY
+        
+        // Vérifier qu'on n'est pas sur la route
+        if (!this.isOnRoad(compX, compY)) {
+          this.computers.push({
+            x: compX,
+            y: compY,
+            collected: false,
+          })
+        }
       }
     })
     
     this.computers.forEach(computer => {
       computer.sprite = this.add.image(computer.x, computer.y, 'computer_old')
         .setDepth(computer.y)
-        .setScale(1.5)
+        .setScale(1.2)
       
-      computer.interactIcon = this.add.image(computer.x, computer.y - 35, 'interact_icon')
+      computer.interactIcon = this.add.image(computer.x, computer.y - 30, 'interact_icon')
         .setDepth(computer.y + 100)
         .setScale(0.8)
         .setVisible(false)
       
       this.tweens.add({
         targets: computer.interactIcon,
-        y: computer.y - 45,
+        y: computer.y - 40,
         duration: 800,
         yoyo: true,
         repeat: -1,
@@ -231,215 +312,331 @@ export class MainScene extends Phaser.Scene {
     })
   }
 
+  // ==================== VOITURES ====================
   private createCars(): void {
-    const carColors = ['red', 'blue', 'green', 'yellow', 'white', 'black', 'silver']
+    const carColors = ['red', 'blue', 'green', 'yellow', 'white', 'black']
     
-    // Voitures garées
-    const parkingSpots = [
-      { x: 120, y: 570 }, { x: 180, y: 570 }, { x: 240, y: 570 },
-      { x: 1720, y: 220 }, { x: 1780, y: 220 },
-      { x: 2220, y: 1070 }, { x: 2280, y: 1070 },
-    ]
-    
-    parkingSpots.forEach(pos => {
-      const color = Phaser.Math.RND.pick(carColors)
-      this.add.image(pos.x, pos.y, `car_${color}`)
-        .setDepth(pos.y)
-        .setRotation(Math.PI / 2)
+    // Voitures sur les routes horizontales
+    this.roadTilesH.forEach((roadY, index) => {
+      for (let i = 0; i < 2; i++) {
+        const color = Phaser.Math.RND.pick(carColors)
+        const laneY = (roadY + (i === 0 ? 0.3 : 1.3)) * this.tileSize + 32
+        const startX = Math.random() * this.mapWidth
+        
+        const sprite = this.add.image(startX, laneY, `car_${color}`)
+          .setScale(0.9) // Voitures plus grandes
+          .setDepth(laneY + 5)
+          .setRotation(i === 0 ? 0 : Math.PI) // Direction opposée par voie
+        
+        this.cars.push({
+          sprite,
+          direction: 'h',
+          speed: (60 + Math.random() * 40) * (i === 0 ? 1 : -1),
+          lane: i
+        })
+      }
     })
     
-    // Voitures en mouvement
-    const movingCars = [
-      { x: 100, y: 485, dir: 'h' as const },
-      { x: 500, y: 1025, dir: 'h' as const },
-      { x: 670, y: 200, dir: 'v' as const },
-      { x: 1310, y: 600, dir: 'v' as const },
-    ]
-    
-    movingCars.forEach(carInfo => {
-      const color = Phaser.Math.RND.pick(carColors)
-      const sprite = this.add.image(carInfo.x, carInfo.y, `car_${color}`)
-        .setDepth(carInfo.y + 10)
-        .setRotation(carInfo.dir === 'h' ? Math.PI : Math.PI / 2)
-      
-      this.cars.push({
-        sprite,
-        direction: carInfo.dir,
-        speed: 40 + Math.random() * 40,
-      })
+    // Voitures sur les routes verticales
+    this.roadTilesV.forEach((roadX, index) => {
+      for (let i = 0; i < 2; i++) {
+        const color = Phaser.Math.RND.pick(carColors)
+        const laneX = (roadX + (i === 0 ? 0.3 : 1.3)) * this.tileSize + 32
+        const startY = Math.random() * this.mapHeight
+        
+        const sprite = this.add.image(laneX, startY, `car_${color}`)
+          .setScale(0.9)
+          .setDepth(startY + 5)
+          .setRotation(i === 0 ? -Math.PI / 2 : Math.PI / 2)
+        
+        this.cars.push({
+          sprite,
+          direction: 'v',
+          speed: (60 + Math.random() * 40) * (i === 0 ? 1 : -1),
+          lane: i
+        })
+      }
     })
   }
 
-  private createDecorations(): void {
-    // Arbres
-    const treePositions = [
-      { x: 100, y: 150 }, { x: 300, y: 120 }, { x: 500, y: 150 },
-      { x: 1000, y: 130 }, { x: 1500, y: 150 }, { x: 2000, y: 120 },
-      { x: 400, y: 1700 }, { x: 600, y: 1750 }, { x: 800, y: 1680 },
-      { x: 1000, y: 1720 }, { x: 1200, y: 1760 }, { x: 1400, y: 1700 },
-      { x: 1600, y: 1740 }, { x: 1800, y: 1680 }, { x: 2000, y: 1720 },
-      { x: 550, y: 400 }, { x: 1200, y: 400 }, { x: 1900, y: 400 },
-      { x: 600, y: 900 }, { x: 1000, y: 900 }, { x: 1900, y: 900 },
+  // ==================== PNJs ====================
+  private createNPCs(): void {
+    const npcTypes: Array<'citizen' | 'woman' | 'technician'> = ['citizen', 'woman', 'technician']
+    
+    // PNJs fixes (sur les trottoirs)
+    const fixedNPCPositions = [
+      { tx: 9, ty: 6 },  // Trottoir près d'une intersection
+      { tx: 19, ty: 6 },
+      { tx: 9, ty: 14 },
+      { tx: 21, ty: 14 },
+      { tx: 9, ty: 22 },
+      { tx: 19, ty: 22 },
+      { tx: 31, ty: 6 },
+      { tx: 31, ty: 22 },
     ]
     
-    treePositions.forEach(pos => {
-      const treeType = Math.random() > 0.3 ? 'tree' : 'tree_pine'
-      this.add.image(pos.x, pos.y, treeType)
+    fixedNPCPositions.forEach(pos => {
+      const type = Phaser.Math.RND.pick(npcTypes)
+      const sprite = this.add.sprite(
+        pos.tx * this.tileSize + 32,
+        pos.ty * this.tileSize + 32,
+        `npc_${type}`
+      ).setOrigin(0.5, 1).setScale(1.1).setDepth(pos.ty * this.tileSize + 100)
+      
+      this.npcs.push({
+        sprite,
+        type,
+        isMoving: false,
+        speed: 0,
+        direction: Math.random() > 0.5 ? 'left' : 'right'
+      })
+    })
+    
+    // PNJs en mouvement (sur les trottoirs)
+    const movingNPCPositions = [
+      { tx: 5, ty: 6, targetTx: 30 },
+      { tx: 28, ty: 14, targetTx: 5 },
+      { tx: 10, ty: 22, targetTx: 35 },
+      { tx: 15, ty: 6, targetTx: 25 },
+      { tx: 32, ty: 14, targetTx: 12 },
+    ]
+    
+    movingNPCPositions.forEach(pos => {
+      const type = Phaser.Math.RND.pick(npcTypes)
+      const startX = pos.tx * this.tileSize + 32
+      const startY = pos.ty * this.tileSize + 32
+      
+      const sprite = this.add.sprite(startX, startY, `npc_${type}`)
         .setOrigin(0.5, 1)
-        .setDepth(pos.y)
+        .setScale(1.1)
+        .setDepth(startY + 100)
+      
+      const targetX = pos.targetTx * this.tileSize + 32
+      const direction = targetX > startX ? 'right' : 'left'
+      sprite.setFlipX(direction === 'left')
+      
+      this.npcs.push({
+        sprite,
+        type,
+        isMoving: true,
+        targetX,
+        targetY: startY,
+        speed: 30 + Math.random() * 20,
+        direction
+      })
+    })
+    
+    // Techniciens près de l'atelier NIRD
+    const workshop = this.buildings.find(b => b.type === 'workshop')
+    if (workshop) {
+      for (let i = 0; i < 2; i++) {
+        const sprite = this.add.sprite(
+          workshop.x + (i === 0 ? -60 : 60),
+          workshop.y + 20,
+          'npc_technician'
+        ).setOrigin(0.5, 1).setScale(1.1).setDepth(workshop.y + 100)
+        
+        this.npcs.push({
+          sprite,
+          type: 'technician',
+          isMoving: false,
+          speed: 0,
+          direction: i === 0 ? 'right' : 'left'
+        })
+      }
+    }
+  }
+
+  // ==================== VÉGÉTATION ====================
+  private createVegetation(): void {
+    // Arbres - uniquement sur l'herbe
+    const treePositions: Array<{tx: number, ty: number}> = []
+    
+    // Bordures de la carte
+    for (let tx = 0; tx < 40; tx += 3) {
+      if (!this.isTileOnRoadOrBuilding(tx, 0)) treePositions.push({ tx, ty: 1 })
+      if (!this.isTileOnRoadOrBuilding(tx, 29)) treePositions.push({ tx, ty: 28 })
+    }
+    for (let ty = 0; ty < 30; ty += 3) {
+      if (!this.isTileOnRoadOrBuilding(0, ty)) treePositions.push({ tx: 1, ty })
+      if (!this.isTileOnRoadOrBuilding(39, ty)) treePositions.push({ tx: 38, ty })
+    }
+    
+    // Arbres entre les zones
+    const additionalTrees = [
+      { tx: 12, ty: 4 }, { tx: 18, ty: 4 }, { tx: 22, ty: 4 },
+      { tx: 12, ty: 12 }, { tx: 18, ty: 12 },
+      { tx: 12, ty: 20 }, { tx: 18, ty: 20 }, { tx: 28, ty: 20 },
+      { tx: 6, ty: 25 }, { tx: 20, ty: 25 }, { tx: 32, ty: 25 },
+    ]
+    treePositions.push(...additionalTrees.filter(p => !this.isTileOnRoadOrBuilding(p.tx, p.ty)))
+    
+    treePositions.forEach(pos => {
+      const px = pos.tx * this.tileSize + 32
+      const py = pos.ty * this.tileSize + 64
+      const treeType = Math.random() > 0.4 ? 'tree' : 'tree_pine'
+      this.add.image(px, py, treeType)
+        .setOrigin(0.5, 1)
+        .setDepth(py)
         .setScale(0.9 + Math.random() * 0.3)
     })
     
-    // Buissons
-    for (let i = 0; i < 35; i++) {
-      let x: number, y: number
+    // Buissons - sur l'herbe uniquement
+    for (let i = 0; i < 40; i++) {
+      let tx: number, ty: number
+      let attempts = 0
       do {
-        x = 50 + Math.random() * (this.mapWidth - 100)
-        y = 50 + Math.random() * (this.mapHeight - 100)
-      } while (this.isOnRoad(x, y))
+        tx = Math.floor(Math.random() * 40)
+        ty = Math.floor(Math.random() * 30)
+        attempts++
+      } while (this.isTileOnRoadOrBuilding(tx, ty) && attempts < 20)
       
-      this.add.image(x, y, Math.random() > 0.5 ? 'bush' : 'bush_round')
-        .setOrigin(0.5, 1)
-        .setDepth(y)
-        .setScale(0.7 + Math.random() * 0.5)
+      if (attempts < 20) {
+        const px = tx * this.tileSize + 32 + (Math.random() - 0.5) * 30
+        const py = ty * this.tileSize + 48
+        this.add.image(px, py, 'bush')
+          .setOrigin(0.5, 1)
+          .setDepth(py)
+          .setScale(0.6 + Math.random() * 0.4)
+      }
     }
     
-    // Fleurs
-    for (let i = 0; i < 50; i++) {
-      let x: number, y: number
+    // Fleurs - sur l'herbe uniquement
+    for (let i = 0; i < 60; i++) {
+      let tx: number, ty: number
+      let attempts = 0
       do {
-        x = 50 + Math.random() * (this.mapWidth - 100)
-        y = 50 + Math.random() * (this.mapHeight - 100)
-      } while (this.isOnRoad(x, y))
+        tx = Math.floor(Math.random() * 40)
+        ty = Math.floor(Math.random() * 30)
+        attempts++
+      } while (this.isTileOnRoadOrBuilding(tx, ty) && attempts < 20)
       
-      const flowerType = Phaser.Math.RND.pick(['flower', 'flower_yellow', 'flower_tulip'])
-      this.add.image(x, y, flowerType)
-        .setOrigin(0.5, 1)
-        .setDepth(y - 10)
-        .setScale(0.5 + Math.random() * 0.5)
+      if (attempts < 20) {
+        const px = tx * this.tileSize + 32 + (Math.random() - 0.5) * 40
+        const py = ty * this.tileSize + 40
+        const flowerType = Math.random() > 0.5 ? 'flower' : 'flower_yellow'
+        this.add.image(px, py, flowerType)
+          .setOrigin(0.5, 1)
+          .setDepth(py - 10)
+          .setScale(0.5 + Math.random() * 0.4)
+      }
     }
     
     // Rochers
-    for (let i = 0; i < 10; i++) {
-      let x: number, y: number
+    for (let i = 0; i < 15; i++) {
+      let tx: number, ty: number
+      let attempts = 0
       do {
-        x = 50 + Math.random() * (this.mapWidth - 100)
-        y = 50 + Math.random() * (this.mapHeight - 100)
-      } while (this.isOnRoad(x, y))
+        tx = Math.floor(Math.random() * 40)
+        ty = Math.floor(Math.random() * 30)
+        attempts++
+      } while (this.isTileOnRoadOrBuilding(tx, ty) && attempts < 20)
       
-      this.add.image(x, y, 'rock')
-        .setOrigin(0.5, 1)
-        .setDepth(y)
-        .setScale(0.6 + Math.random() * 0.6)
+      if (attempts < 20) {
+        const px = tx * this.tileSize + 32
+        const py = ty * this.tileSize + 48
+        this.add.image(px, py, 'rock')
+          .setOrigin(0.5, 1)
+          .setDepth(py)
+          .setScale(0.5 + Math.random() * 0.5)
+      }
     }
     
-    // Fontaine dans le parc
-    this.add.image(1280, 1700, 'fountain')
-      .setOrigin(0.5, 0.5)
-      .setDepth(1700)
-      .setScale(1.5)
+    // Mobilier urbain - sur les trottoirs
+    this.createStreetFurniture()
   }
 
   private createStreetFurniture(): void {
-    // Lampadaires
-    const lampPositions = [
-      { x: 576, y: 420 }, { x: 576, y: 900 }, { x: 576, y: 1380 },
-      { x: 704, y: 420 }, { x: 704, y: 900 }, { x: 704, y: 1380 },
-      { x: 1216, y: 420 }, { x: 1216, y: 900 }, { x: 1216, y: 1380 },
-      { x: 1344, y: 420 }, { x: 1344, y: 900 }, { x: 1344, y: 1380 },
-    ]
-    lampPositions.forEach(pos => {
-      this.add.image(pos.x, pos.y, 'lamppost')
-        .setOrigin(0.5, 1)
-        .setDepth(pos.y)
+    // Lampadaires le long des routes
+    this.roadTilesH.forEach(roadY => {
+      for (let tx = 4; tx < 38; tx += 5) {
+        if (this.isTileOnRoadOrBuilding(tx, roadY - 1)) continue
+        const px = tx * this.tileSize + 32
+        const py = (roadY - 1) * this.tileSize + 64
+        this.add.image(px, py, 'lamppost').setOrigin(0.5, 1).setDepth(py)
+      }
     })
     
-    // Feux tricolores
-    const trafficLights = [
-      { x: 580, y: 520 }, { x: 700, y: 440 },
-      { x: 1220, y: 520 }, { x: 1340, y: 440 },
-      { x: 580, y: 1000 }, { x: 700, y: 920 },
-    ]
-    trafficLights.forEach(pos => {
-      this.add.image(pos.x, pos.y, 'traffic_light')
-        .setOrigin(0.5, 1)
-        .setDepth(pos.y)
-    })
-    
-    // Bancs
+    // Bancs sur les trottoirs
     const benchPositions = [
-      { x: 1200, y: 1720 }, { x: 1360, y: 1720 },
-      { x: 300, y: 1720 }, { x: 2260, y: 1720 },
+      { tx: 5, ty: 6 }, { tx: 15, ty: 6 }, { tx: 25, ty: 6 },
+      { tx: 10, ty: 14 }, { tx: 25, ty: 14 },
+      { tx: 5, ty: 22 }, { tx: 15, ty: 22 }, { tx: 30, ty: 22 },
     ]
     benchPositions.forEach(pos => {
-      this.add.image(pos.x, pos.y, 'bench')
-        .setOrigin(0.5, 1)
-        .setDepth(pos.y)
+      if (!this.isTileOnRoadOrBuilding(pos.tx, pos.ty)) return
+      const px = pos.tx * this.tileSize + 32
+      const py = pos.ty * this.tileSize + 48
+      this.add.image(px, py, 'bench').setOrigin(0.5, 1).setDepth(py)
     })
     
-    // Poubelles
-    const trashPositions = [
-      { x: 590, y: 500 }, { x: 710, y: 500 },
-      { x: 1230, y: 500 }, { x: 1280, y: 1680 },
+    // Poubelles près des bancs
+    benchPositions.forEach(pos => {
+      const px = pos.tx * this.tileSize + 60
+      const py = pos.ty * this.tileSize + 48
+      this.add.image(px, py, 'trashcan').setOrigin(0.5, 1).setDepth(py)
+    })
+    
+    // Fontaine dans un espace vert (pas sur la route!)
+    const fountainTx = 15
+    const fountainTy = 25
+    if (!this.isTileOnRoadOrBuilding(fountainTx, fountainTy)) {
+      const px = fountainTx * this.tileSize + 32
+      const py = fountainTy * this.tileSize + 64
+      this.add.image(px, py, 'fountain')
+        .setOrigin(0.5, 0.5)
+        .setDepth(py + 40)
+        .setScale(1.3)
+    }
+    
+    // Panneaux d'indication
+    const signPositions = [
+      { tx: 9, ty: 6 },
+      { tx: 19, ty: 14 },
+      { tx: 29, ty: 22 },
     ]
-    trashPositions.forEach(pos => {
-      this.add.image(pos.x, pos.y, 'trashcan')
-        .setOrigin(0.5, 1)
-        .setDepth(pos.y)
-    })
-    
-    // Arrêts de bus
-    const busStops = [
-      { x: 560, y: 550 }, { x: 1200, y: 550 },
-    ]
-    busStops.forEach(pos => {
-      this.add.image(pos.x, pos.y, 'bus_stop')
-        .setOrigin(0.5, 1)
-        .setDepth(pos.y)
-    })
-    
-    // Panneaux
-    const signs = [
-      { x: 1350, y: 750 }, { x: 700, y: 1300 }, { x: 700, y: 350 },
-    ]
-    signs.forEach(pos => {
-      this.add.image(pos.x, pos.y, 'sign')
-        .setOrigin(0.5, 1)
-        .setDepth(pos.y)
-    })
-    
-    // Boîtes aux lettres devant les maisons
-    this.buildings.filter(b => b.type === 'house').forEach(house => {
-      this.add.image(house.x + 40, house.y + 10, 'mailbox')
-        .setOrigin(0.5, 1)
-        .setDepth(house.y + 15)
+    signPositions.forEach(pos => {
+      const px = pos.tx * this.tileSize + 48
+      const py = pos.ty * this.tileSize + 64
+      this.add.image(px, py, 'sign').setOrigin(0.5, 1).setDepth(py)
     })
   }
 
-  private isOnRoad(x: number, y: number): boolean {
-    const horizontalRoads = [480, 960, 1440]
-    for (const roadY of horizontalRoads) {
-      if (y > roadY - 80 && y < roadY + 144) return true
+  // ==================== UTILITAIRES ====================
+  private isTileOnRoadOrBuilding(tx: number, ty: number): boolean {
+    // Check routes horizontales
+    for (const roadY of this.roadTilesH) {
+      if (ty >= roadY - 1 && ty <= roadY + 2) return true
     }
-    
-    const verticalRoads = [640, 1280, 1920]
-    for (const roadX of verticalRoads) {
-      if (x > roadX - 80 && x < roadX + 144) return true
+    // Check routes verticales
+    for (const roadX of this.roadTilesV) {
+      if (tx >= roadX - 1 && tx <= roadX + 2) return true
     }
-    
     return false
   }
 
+  private isOnRoad(x: number, y: number): boolean {
+    const tx = Math.floor(x / this.tileSize)
+    const ty = Math.floor(y / this.tileSize)
+    return this.isTileOnRoadOrBuilding(tx, ty)
+  }
+
+  // ==================== JOUEUR ====================
   private createPlayer(): void {
-    this.player = this.add.sprite(1280, 1000, 'player_idle')
+    // Spawn près de l'atelier NIRD
+    const workshop = this.buildings.find(b => b.type === 'workshop')
+    const startX = workshop ? workshop.x + 100 : this.mapWidth / 2
+    const startY = workshop ? workshop.y + 50 : this.mapHeight / 2
+    
+    this.player = this.add.sprite(startX, startY, 'player_idle')
       .setOrigin(0.5, 1)
-      .setScale(1.5)
+      .setScale(1.3) // Personnage plus grand
     
     this.physics.add.existing(this.player)
-    const playerBody = this.player.body as Phaser.Physics.Arcade.Body
-    playerBody.setCollideWorldBounds(true)
-    playerBody.setSize(20, 16)
-    playerBody.setOffset(6, 32)
+    const body = this.player.body as Phaser.Physics.Arcade.Body
+    body.setCollideWorldBounds(true)
+    body.setSize(20, 16)
+    body.setOffset(10, 48)
   }
 
   private createAnimations(): void {
@@ -456,6 +653,24 @@ export class MainScene extends Phaser.Scene {
         repeat: -1,
       })
     }
+    
+    // Animations PNJ
+    const npcTypes = ['citizen', 'woman', 'technician']
+    npcTypes.forEach(type => {
+      if (!this.anims.exists(`npc_${type}_walk`)) {
+        this.anims.create({
+          key: `npc_${type}_walk`,
+          frames: [
+            { key: `npc_${type}_walk_0` },
+            { key: `npc_${type}_walk_1` },
+            { key: `npc_${type}_walk_2` },
+            { key: `npc_${type}_walk_3` },
+          ],
+          frameRate: 8,
+          repeat: -1,
+        })
+      }
+    })
   }
 
   private setupControls(): void {
@@ -471,55 +686,65 @@ export class MainScene extends Phaser.Scene {
 
   private setupCamera(): void {
     this.cameras.main.setBounds(0, 0, this.mapWidth, this.mapHeight)
-    this.cameras.main.startFollow(this.player, true, 0.1, 0.1)
+    this.cameras.main.startFollow(this.player, true, 0.08, 0.08)
     this.cameras.main.setZoom(1)
   }
 
   private setupEvents(): void {
-    this.interactKey.on('down', () => {
-      this.handleInteraction()
-    })
+    this.interactKey.on('down', () => this.handleInteraction())
   }
 
+  private createDebugUI(): void {
+    this.debugText = this.add.text(10, 10, '', {
+      fontSize: '14px',
+      color: '#ffffff',
+      backgroundColor: '#000000aa',
+      padding: { x: 8, y: 4 }
+    }).setScrollFactor(0).setDepth(9999)
+  }
+
+  // ==================== UPDATE ====================
   update(): void {
     this.handleMovement()
     this.checkProximity()
     this.updateDepth()
     this.updateCars()
+    this.updateNPCs()
+    this.updateDebug()
   }
 
   private handleMovement(): void {
-    const playerBody = this.player.body as Phaser.Physics.Arcade.Body
-    playerBody.setVelocity(0)
+    const body = this.player.body as Phaser.Physics.Arcade.Body
+    body.setVelocity(0)
     
     let isMoving = false
     
     if (this.cursors.left.isDown || this.wasd.A.isDown) {
-      playerBody.setVelocityX(-this.playerSpeed)
+      body.setVelocityX(-this.playerSpeed)
       this.player.setFlipX(true)
       isMoving = true
     } else if (this.cursors.right.isDown || this.wasd.D.isDown) {
-      playerBody.setVelocityX(this.playerSpeed)
+      body.setVelocityX(this.playerSpeed)
       this.player.setFlipX(false)
       isMoving = true
     }
     
     if (this.cursors.up.isDown || this.wasd.W.isDown) {
-      playerBody.setVelocityY(-this.playerSpeed)
+      body.setVelocityY(-this.playerSpeed)
       isMoving = true
     } else if (this.cursors.down.isDown || this.wasd.S.isDown) {
-      playerBody.setVelocityY(this.playerSpeed)
+      body.setVelocityY(this.playerSpeed)
       isMoving = true
     }
     
-    const velocity = playerBody.velocity
-    if (velocity.x !== 0 && velocity.y !== 0) {
-      playerBody.setVelocity(velocity.x * 0.707, velocity.y * 0.707)
+    if (body.velocity.x !== 0 && body.velocity.y !== 0) {
+      body.velocity.normalize().scale(this.playerSpeed)
     }
     
     if (isMoving) {
       this.player.play('walk', true)
     } else {
+      this.player.stop()
       this.player.setTexture('player_idle')
     }
   }
@@ -535,12 +760,8 @@ export class MainScene extends Phaser.Scene {
     })
     
     for (const building of this.buildings) {
-      const distance = Phaser.Math.Distance.Between(
-        this.player.x, this.player.y,
-        building.x, building.y
-      )
-      
-      if (distance < 120) {
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, building.x, building.y)
+      if (dist < 120) {
         this.nearBuilding = building
         this.events.emit('nearBuilding', building)
         break
@@ -553,24 +774,17 @@ export class MainScene extends Phaser.Scene {
     
     for (const computer of this.computers) {
       if (computer.collected) continue
-      
-      const distance = Phaser.Math.Distance.Between(
-        this.player.x, this.player.y,
-        computer.x, computer.y
-      )
-      
-      if (distance < 60) {
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, computer.x, computer.y)
+      if (dist < 50) {
         this.nearComputer = computer
-        if (computer.interactIcon) {
-          computer.interactIcon.setVisible(true)
-        }
+        if (computer.interactIcon) computer.interactIcon.setVisible(true)
         break
       }
     }
   }
 
   private updateDepth(): void {
-    this.player.setDepth(this.player.y)
+    this.player.setDepth(this.player.y + 10)
   }
 
   private updateCars(): void {
@@ -579,19 +793,51 @@ export class MainScene extends Phaser.Scene {
     this.cars.forEach(car => {
       if (car.direction === 'h') {
         car.sprite.x += car.speed * delta
-        if (car.sprite.x > this.mapWidth + 50) {
-          car.sprite.x = -50
-        }
+        if (car.sprite.x > this.mapWidth + 100) car.sprite.x = -100
+        if (car.sprite.x < -100) car.sprite.x = this.mapWidth + 100
       } else {
         car.sprite.y += car.speed * delta
-        if (car.sprite.y > this.mapHeight + 50) {
-          car.sprite.y = -50
-        }
+        if (car.sprite.y > this.mapHeight + 100) car.sprite.y = -100
+        if (car.sprite.y < -100) car.sprite.y = this.mapHeight + 100
       }
-      car.sprite.setDepth(car.sprite.y + 10)
+      car.sprite.setDepth(car.sprite.y + 5)
     })
   }
 
+  private updateNPCs(): void {
+    const delta = this.game.loop.delta / 1000
+    
+    this.npcs.forEach(npc => {
+      if (npc.isMoving && npc.targetX !== undefined) {
+        const dx = npc.targetX - npc.sprite.x
+        
+        if (Math.abs(dx) > 5) {
+          npc.sprite.x += npc.speed * delta * Math.sign(dx)
+          npc.sprite.setFlipX(dx < 0)
+          npc.sprite.play(`npc_${npc.type}_walk`, true)
+        } else {
+          // Arrivé à destination, retourner
+          const temp = npc.targetX
+          npc.targetX = npc.sprite.x + (npc.direction === 'right' ? -1000 : 1000)
+          npc.direction = npc.direction === 'right' ? 'left' : 'right'
+        }
+        
+        npc.sprite.setDepth(npc.sprite.y + 10)
+      }
+    })
+  }
+
+  private updateDebug(): void {
+    const tx = Math.floor(this.player.x / this.tileSize)
+    const ty = Math.floor(this.player.y / this.tileSize)
+    this.debugText.setText(
+      `Position: (${Math.round(this.player.x)}, ${Math.round(this.player.y)})\n` +
+      `Tile: (${tx}, ${ty})\n` +
+      `PC: ${this.inventory} | Recond: ${this.reconditionedCount} | Distrib: ${this.distributedCount}`
+    )
+  }
+
+  // ==================== INTERACTIONS ====================
   private handleInteraction(): void {
     if (this.nearComputer && !this.nearComputer.collected) {
       this.collectComputer(this.nearComputer)
@@ -620,18 +866,18 @@ export class MainScene extends Phaser.Scene {
       }
     })
     
-    const collectText = this.add.text(computer.x, computer.y - 30, '+1 PC 💻', {
-      fontSize: '20px',
+    const text = this.add.text(computer.x, computer.y - 30, '+1 PC 💻', {
+      fontSize: '18px',
       color: '#22c55e',
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(9999)
     
     this.tweens.add({
-      targets: collectText,
-      y: computer.y - 80,
+      targets: text,
+      y: computer.y - 70,
       alpha: 0,
       duration: 800,
-      onComplete: () => collectText.destroy()
+      onComplete: () => text.destroy()
     })
     
     this.events.emit('updateStats', {
@@ -648,14 +894,14 @@ export class MainScene extends Phaser.Scene {
     switch (building.type) {
       case 'enterprise':
       case 'office':
-        this.events.emit('showMessage', `${building.name}: "Prenez ces vieux PC..."`)
+        this.events.emit('showMessage', `${building.name}: "Prenez ces vieux PC, on allait les jeter..."`)
         break
         
       case 'workshop':
         if (this.inventory > 0) {
           this.reconditionComputers()
         } else {
-          this.events.emit('showMessage', '🔧 Atelier NIRD: "Apportez-nous des PC à reconditionner !"')
+          this.events.emit('showMessage', '🔧 Atelier NIRD: "Apportez-nous des PC à reconditionner sous Linux !"')
         }
         break
         
@@ -663,40 +909,32 @@ export class MainScene extends Phaser.Scene {
         if (this.reconditionedCount > this.distributedCount) {
           this.distributeComputer(building)
         } else {
-          this.events.emit('showMessage', `${building.name}: "Nous attendons des PC !"`)
+          this.events.emit('showMessage', `${building.name}: "Nous attendons des ordinateurs !"`)
         }
         break
         
-      case 'house':
-        this.events.emit('showMessage', '"Merci pour votre action écologique ! 🌱"')
-        break
-        
-      case 'shop':
-        this.events.emit('showMessage', `${building.name}: "Bonne journée !"`)
-        break
-        
-      case 'apartment':
-        this.events.emit('showMessage', '"L\'économie circulaire, c\'est l\'avenir !"')
+      default:
+        this.events.emit('showMessage', `${building.name}`)
         break
     }
   }
 
   private reconditionComputers(): void {
-    const toRecondition = this.inventory
+    const count = this.inventory
     this.inventory = 0
-    this.reconditionedCount += toRecondition
+    this.reconditionedCount += count
     
     const workshop = this.buildings.find(b => b.type === 'workshop')
     if (workshop) {
-      const text = this.add.text(workshop.x, workshop.y - 60, `+${toRecondition} PC Linux ! 🐧`, {
-        fontSize: '24px',
+      const text = this.add.text(workshop.x, workshop.y - 80, `+${count} PC Linux ! 🐧`, {
+        fontSize: '22px',
         color: '#22c55e',
         fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(9999)
       
       this.tweens.add({
         targets: text,
-        y: workshop.y - 120,
+        y: workshop.y - 140,
         alpha: 0,
         duration: 1500,
         onComplete: () => text.destroy()
@@ -710,34 +948,34 @@ export class MainScene extends Phaser.Scene {
       inventory: this.inventory,
     })
     
-    this.events.emit('showMessage', `🎉 ${toRecondition} PC reconditionnés ! Distribuez-les aux écoles.`)
+    this.events.emit('showMessage', `🎉 ${count} PC reconditionnés ! Distribuez-les aux écoles.`)
   }
 
   private distributeComputer(school: Building): void {
     this.distributedCount++
     
-    const newPc = this.add.image(
-      school.x + (Math.random() - 0.5) * 80,
-      school.y + 50,
+    const pc = this.add.image(
+      school.x + (Math.random() - 0.5) * 60,
+      school.y + 40,
       'computer_new'
-    ).setScale(0).setDepth(school.y + 60)
+    ).setScale(0).setDepth(school.y + 50)
     
     this.tweens.add({
-      targets: newPc,
-      scale: 1.2,
+      targets: pc,
+      scale: 1,
       duration: 300,
       ease: 'Back.easeOut'
     })
     
-    const text = this.add.text(school.x, school.y - 30, '🎉 +1 PC distribué !', {
-      fontSize: '20px',
+    const text = this.add.text(school.x, school.y - 40, '🎉 +1 PC distribué !', {
+      fontSize: '18px',
       color: '#ec4899',
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(9999)
     
     this.tweens.add({
       targets: text,
-      y: school.y - 80,
+      y: school.y - 90,
       alpha: 0,
       duration: 1000,
       onComplete: () => text.destroy()

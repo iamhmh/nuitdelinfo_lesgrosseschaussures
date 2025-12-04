@@ -1,6 +1,5 @@
 /**
- * Scène de chargement - Génère toutes les textures procéduralement
- * Ville détaillée avec bâtiments, routes, voitures, végétation
+ * BootScene - Génération procédurale de toutes les textures
  */
 import Phaser from 'phaser'
 
@@ -13,27 +12,21 @@ export class BootScene extends Phaser.Scene {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
     
-    // Écran de chargement style terminal
     this.cameras.main.setBackgroundColor('#0a0a0a')
     
-    const progressBar = this.add.graphics()
     const progressBox = this.add.graphics()
     progressBox.fillStyle(0x1a1a2e, 0.9)
     progressBox.fillRect(width / 2 - 200, height / 2 - 30, 400, 60)
     progressBox.lineStyle(2, 0x22c55e)
     progressBox.strokeRect(width / 2 - 200, height / 2 - 30, 400, 60)
 
-    const header = this.add.text(width / 2, height / 2 - 80, '🖥️ NIRD OS v2.0 - Chargement...', {
+    const header = this.add.text(width / 2, height / 2 - 80, '🖥️ NIRD OS v2.0', {
       fontSize: '24px',
       color: '#22c55e',
       fontFamily: 'monospace'
     }).setOrigin(0.5)
 
-    const loadingText = this.add.text(width / 2, height / 2 + 50, 'Initialisation des textures...', {
-      fontSize: '14px',
-      color: '#888888',
-      fontFamily: 'monospace'
-    }).setOrigin(0.5)
+    const progressBar = this.add.graphics()
 
     this.load.on('progress', (value: number) => {
       progressBar.clear()
@@ -45,18 +38,13 @@ export class BootScene extends Phaser.Scene {
       progressBar.destroy()
       progressBox.destroy()
       header.destroy()
-      loadingText.destroy()
     })
 
-    // Charger une image placeholder pour déclencher le chargement
     this.load.image('placeholder', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')
   }
 
   create(): void {
-    // Générer toutes les textures
     this.generateAllTextures()
-    
-    // Lancer les scènes
     this.scene.start('MainScene')
     this.scene.launch('UIScene')
   }
@@ -64,52 +52,26 @@ export class BootScene extends Phaser.Scene {
   private generateAllTextures(): void {
     const g = this.make.graphics({ x: 0, y: 0 })
     
-    // === TERRAIN ===
-    this.generateGrass(g)
-    this.generateRoads(g)
-    this.generateSidewalks(g)
-    this.generateParking(g)
-    
-    // === BÂTIMENTS ===
-    this.generateModernBuilding(g)
-    this.generateOfficeBuilding(g)
-    this.generateSchool(g)
-    this.generateWorkshop(g)
-    this.generateHouse(g)
-    this.generateApartment(g)
-    this.generateShop(g)
-    
-    // === VÉHICULES ===
-    this.generateCars(g)
-    
-    // === VÉGÉTATION ===
-    this.generateTrees(g)
-    this.generateBushes(g)
-    this.generateFlowers(g)
-    
-    // === MOBILIER URBAIN ===
-    this.generateStreetFurniture(g)
-    
-    // === OBJETS DU JEU ===
+    this.generateTerrain(g)
+    this.generateBuildings(g)
+    this.generateVehicles(g)
+    this.generateVegetation(g)
+    this.generateFurniture(g)
     this.generateGameObjects(g)
-    
-    // === PERSONNAGE ===
-    this.generatePlayer(g)
+    this.generateCharacters(g)
     
     g.destroy()
   }
 
   // ==================== TERRAIN ====================
-  
-  private generateGrass(g: Phaser.GameObjects.Graphics): void {
+  private generateTerrain(g: Phaser.GameObjects.Graphics): void {
     // Herbe normale
     g.clear()
     g.fillStyle(0x4a7c59)
     g.fillRect(0, 0, 64, 64)
-    // Détails d'herbe
-    for (let i = 0; i < 40; i++) {
-      g.fillStyle(Phaser.Math.RND.pick([0x3d6b4a, 0x5a8c69, 0x4a7c59, 0x3a5a40]))
-      g.fillRect(Math.random() * 60, Math.random() * 60, 2 + Math.random() * 3, 3 + Math.random() * 5)
+    for (let i = 0; i < 30; i++) {
+      g.fillStyle(Phaser.Math.RND.pick([0x3d6b4a, 0x5a8c69, 0x3a5a40]))
+      g.fillRect(Math.random() * 60, Math.random() * 60, 2, 4)
     }
     g.generateTexture('grass', 64, 64)
     
@@ -117,57 +79,42 @@ export class BootScene extends Phaser.Scene {
     g.clear()
     g.fillStyle(0x3a5a40)
     g.fillRect(0, 0, 64, 64)
-    for (let i = 0; i < 35; i++) {
-      g.fillStyle(Phaser.Math.RND.pick([0x2d4a35, 0x4a6a50, 0x3a5a40]))
-      g.fillRect(Math.random() * 60, Math.random() * 60, 2 + Math.random() * 3, 3 + Math.random() * 5)
+    for (let i = 0; i < 25; i++) {
+      g.fillStyle(Phaser.Math.RND.pick([0x2d4a35, 0x4a6a50]))
+      g.fillRect(Math.random() * 60, Math.random() * 60, 2, 4)
     }
     g.generateTexture('grass_dark', 64, 64)
     
-    // Herbe claire (parc)
-    g.clear()
-    g.fillStyle(0x5a9c69)
-    g.fillRect(0, 0, 64, 64)
-    for (let i = 0; i < 45; i++) {
-      g.fillStyle(Phaser.Math.RND.pick([0x4a8c59, 0x6aac79, 0x5a9c69]))
-      g.fillRect(Math.random() * 60, Math.random() * 60, 2 + Math.random() * 3, 3 + Math.random() * 5)
-    }
-    g.generateTexture('grass_light', 64, 64)
-  }
-
-  private generateRoads(g: Phaser.GameObjects.Graphics): void {
-    // Route asphalt de base
+    // Route asphalt
     g.clear()
     g.fillStyle(0x3a3a3a)
     g.fillRect(0, 0, 64, 64)
-    // Texture asphalte
-    for (let i = 0; i < 100; i++) {
-      g.fillStyle(Phaser.Math.RND.pick([0x333333, 0x404040, 0x4a4a4a, 0x2a2a2a]))
-      g.fillRect(Math.random() * 62, Math.random() * 62, 1 + Math.random() * 2, 1 + Math.random() * 2)
+    for (let i = 0; i < 50; i++) {
+      g.fillStyle(Phaser.Math.RND.pick([0x333333, 0x404040, 0x2a2a2a]))
+      g.fillRect(Math.random() * 62, Math.random() * 62, 2, 2)
     }
     g.generateTexture('road', 64, 64)
     
-    // Route horizontale avec ligne centrale
+    // Route avec ligne horizontale
     g.clear()
     g.fillStyle(0x3a3a3a)
     g.fillRect(0, 0, 64, 64)
-    for (let i = 0; i < 80; i++) {
-      g.fillStyle(Phaser.Math.RND.pick([0x333333, 0x404040, 0x2a2a2a]))
-      g.fillRect(Math.random() * 62, Math.random() * 62, 1 + Math.random() * 2, 1 + Math.random() * 2)
+    for (let i = 0; i < 40; i++) {
+      g.fillStyle(Phaser.Math.RND.pick([0x333333, 0x404040]))
+      g.fillRect(Math.random() * 62, Math.random() * 62, 2, 2)
     }
-    // Ligne jaune horizontale
     g.fillStyle(0xf4c430)
     g.fillRect(0, 30, 64, 4)
     g.generateTexture('road_h', 64, 64)
     
-    // Route verticale avec ligne centrale
+    // Route avec ligne verticale
     g.clear()
     g.fillStyle(0x3a3a3a)
     g.fillRect(0, 0, 64, 64)
-    for (let i = 0; i < 80; i++) {
-      g.fillStyle(Phaser.Math.RND.pick([0x333333, 0x404040, 0x2a2a2a]))
-      g.fillRect(Math.random() * 62, Math.random() * 62, 1 + Math.random() * 2, 1 + Math.random() * 2)
+    for (let i = 0; i < 40; i++) {
+      g.fillStyle(Phaser.Math.RND.pick([0x333333, 0x404040]))
+      g.fillRect(Math.random() * 62, Math.random() * 62, 2, 2)
     }
-    // Ligne jaune verticale
     g.fillStyle(0xf4c430)
     g.fillRect(30, 0, 4, 64)
     g.generateTexture('road_v', 64, 64)
@@ -176,72 +123,49 @@ export class BootScene extends Phaser.Scene {
     g.clear()
     g.fillStyle(0x3a3a3a)
     g.fillRect(0, 0, 64, 64)
-    for (let i = 0; i < 80; i++) {
-      g.fillStyle(Phaser.Math.RND.pick([0x333333, 0x404040, 0x2a2a2a]))
-      g.fillRect(Math.random() * 62, Math.random() * 62, 1 + Math.random() * 2, 1 + Math.random() * 2)
+    for (let i = 0; i < 40; i++) {
+      g.fillStyle(Phaser.Math.RND.pick([0x333333, 0x404040]))
+      g.fillRect(Math.random() * 62, Math.random() * 62, 2, 2)
     }
     g.generateTexture('road_cross', 64, 64)
     
-    // Passage piéton horizontal
+    // Passage piéton H
     g.clear()
     g.fillStyle(0x3a3a3a)
     g.fillRect(0, 0, 64, 64)
     g.fillStyle(0xffffff)
     for (let i = 0; i < 5; i++) {
-      g.fillRect(4 + i * 12, 0, 8, 64)
+      g.fillRect(6 + i * 12, 0, 8, 64)
     }
     g.generateTexture('crosswalk_h', 64, 64)
     
-    // Passage piéton vertical
+    // Passage piéton V
     g.clear()
     g.fillStyle(0x3a3a3a)
     g.fillRect(0, 0, 64, 64)
     g.fillStyle(0xffffff)
     for (let i = 0; i < 5; i++) {
-      g.fillRect(0, 4 + i * 12, 64, 8)
+      g.fillRect(0, 6 + i * 12, 64, 8)
     }
     g.generateTexture('crosswalk_v', 64, 64)
-  }
-
-  private generateSidewalks(g: Phaser.GameObjects.Graphics): void {
-    // Trottoir clair
+    
+    // Trottoir
     g.clear()
-    g.fillStyle(0xb8b8b8)
+    g.fillStyle(0xb0b0b0)
     g.fillRect(0, 0, 64, 64)
-    // Joints
-    g.lineStyle(1, 0x999999)
-    g.lineBetween(0, 32, 64, 32)
+    g.lineStyle(1, 0x909090)
     g.lineBetween(32, 0, 32, 64)
-    // Texture
-    for (let i = 0; i < 30; i++) {
-      g.fillStyle(Phaser.Math.RND.pick([0xa8a8a8, 0xc8c8c8, 0xb0b0b0]))
+    g.lineBetween(0, 32, 64, 32)
+    for (let i = 0; i < 20; i++) {
+      g.fillStyle(Phaser.Math.RND.pick([0xa0a0a0, 0xc0c0c0]))
       g.fillRect(Math.random() * 60, Math.random() * 60, 2, 2)
     }
     g.generateTexture('sidewalk', 64, 64)
-    g.generateTexture('path', 64, 64)
     
-    // Trottoir avec bordure
-    g.clear()
-    g.fillStyle(0xb8b8b8)
-    g.fillRect(0, 0, 64, 64)
-    g.lineStyle(1, 0x999999)
-    g.lineBetween(0, 32, 64, 32)
-    g.lineBetween(32, 0, 32, 64)
-    g.fillStyle(0x888888)
-    g.fillRect(0, 58, 64, 6)
-    g.generateTexture('sidewalk_border', 64, 64)
-  }
-
-  private generateParking(g: Phaser.GameObjects.Graphics): void {
-    // Place de parking
+    // Parking
     g.clear()
     g.fillStyle(0x4a4a4a)
     g.fillRect(0, 0, 64, 64)
-    for (let i = 0; i < 60; i++) {
-      g.fillStyle(Phaser.Math.RND.pick([0x3a3a3a, 0x5a5a5a]))
-      g.fillRect(Math.random() * 62, Math.random() * 62, 1 + Math.random() * 2, 1 + Math.random() * 2)
-    }
-    // Lignes blanches
     g.lineStyle(2, 0xffffff)
     g.lineBetween(0, 0, 0, 64)
     g.lineBetween(63, 0, 63, 64)
@@ -249,405 +173,290 @@ export class BootScene extends Phaser.Scene {
   }
 
   // ==================== BÂTIMENTS ====================
-
-  private generateModernBuilding(g: Phaser.GameObjects.Graphics): void {
-    const w = 160, h = 200
+  private generateBuildings(g: Phaser.GameObjects.Graphics): void {
+    // ENTREPRISE - Grand immeuble moderne (carré, rigide)
+    const ew = 192, eh = 256
     g.clear()
-    
-    // Structure principale - Verre bleuté
-    g.fillStyle(0x1a3a4a)
-    g.fillRect(0, 30, w, h - 30)
-    
+    // Structure principale - verre bleuté
+    g.fillStyle(0x1a3a5a)
+    g.fillRect(0, 40, ew, eh - 40)
     // Façade vitrée
-    g.fillStyle(0x2a5a7a)
-    g.fillRect(5, 35, w - 10, h - 45)
-    
+    g.fillStyle(0x2a5a8a)
+    g.fillRect(8, 48, ew - 16, eh - 60)
     // Fenêtres en grille
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 5; col++) {
-        // Cadre fenêtre
-        g.fillStyle(0x1a3a4a)
-        g.fillRect(10 + col * 30, 40 + row * 20, 26, 16)
-        // Vitre avec reflet
-        if (Math.random() > 0.3) {
-          g.fillStyle(0x87ceeb)
-        } else {
-          g.fillStyle(0xffd700) // Lumière allumée
-        }
-        g.fillRect(11 + col * 30, 41 + row * 20, 24, 14)
-        // Reflet
-        g.fillStyle(0xadd8e6)
-        g.fillRect(12 + col * 30, 42 + row * 20, 8, 5)
+    for (let row = 0; row < 10; row++) {
+      for (let col = 0; col < 6; col++) {
+        g.fillStyle(0x1a3a5a)
+        g.fillRect(12 + col * 30, 52 + row * 20, 26, 16)
+        g.fillStyle(Math.random() > 0.3 ? 0x87ceeb : 0xffd700)
+        g.fillRect(14 + col * 30, 54 + row * 20, 22, 12)
       }
     }
-    
     // Toit
-    g.fillStyle(0x2a4a5a)
-    g.fillRect(0, 25, w, 10)
-    g.fillStyle(0x1a3a4a)
-    g.fillRect(10, 20, w - 20, 10)
-    
-    // Antennes sur le toit
-    g.fillStyle(0x666666)
-    g.fillRect(30, 5, 3, 20)
-    g.fillRect(120, 8, 3, 17)
+    g.fillStyle(0x2a4a6a)
+    g.fillRect(0, 35, ew, 10)
+    // Antennes
+    g.fillStyle(0x555555)
+    g.fillRect(30, 10, 4, 30)
+    g.fillRect(150, 15, 4, 25)
     g.fillStyle(0xff0000)
-    g.fillCircle(31, 5, 3)
-    
+    g.fillCircle(32, 10, 4)
     // Entrée
     g.fillStyle(0x0a1a2a)
-    g.fillRect(60, h - 35, 40, 35)
-    g.fillStyle(0x87ceeb)
-    g.fillRect(65, h - 30, 30, 25)
-    // Marquise
-    g.fillStyle(0x3a6a8a)
-    g.fillRect(55, h - 40, 50, 8)
-    
-    // Logo entreprise
+    g.fillRect(75, eh - 50, 42, 50)
+    g.fillStyle(0x5a8aba)
+    g.fillRect(80, eh - 45, 32, 40)
+    // Logo vert
     g.fillStyle(0x22c55e)
-    g.fillRect(70, 50, 20, 15)
+    g.fillRect(85, 70, 22, 16)
+    g.generateTexture('building_enterprise', ew, eh)
     
-    g.generateTexture('building_enterprise', w, h)
-  }
-
-  private generateOfficeBuilding(g: Phaser.GameObjects.Graphics): void {
-    const w = 140, h = 180
+    // ÉCOLE - Bâtiment en brique avec cour
+    const sw = 240, sh = 180
     g.clear()
-    
-    // Structure béton
-    g.fillStyle(0x6a6a7a)
-    g.fillRect(0, 20, w, h - 20)
-    
-    // Étages
-    for (let floor = 0; floor < 6; floor++) {
-      const y = 25 + floor * 25
-      g.fillStyle(0x5a5a6a)
-      g.fillRect(5, y, w - 10, 22)
-      
-      // Fenêtres
-      for (let win = 0; win < 4; win++) {
-        g.fillStyle(0x1a2a3a)
-        g.fillRect(12 + win * 32, y + 3, 26, 16)
-        g.fillStyle(Math.random() > 0.4 ? 0x87ceeb : 0xffeaa7)
-        g.fillRect(14 + win * 32, y + 5, 22, 12)
-      }
-    }
-    
-    // Toit
-    g.fillStyle(0x4a4a5a)
-    g.fillRect(0, 15, w, 8)
-    
-    // Porte
-    g.fillStyle(0x2a2a3a)
-    g.fillRect(55, h - 30, 30, 30)
-    g.fillStyle(0x4a4a5a)
-    g.fillRect(58, h - 28, 24, 25)
-    
-    g.generateTexture('building_office', w, h)
-  }
-
-  private generateSchool(g: Phaser.GameObjects.Graphics): void {
-    const w = 200, h = 150
-    g.clear()
-    
-    // Bâtiment principal - Brique rouge
+    // Structure principale brique
     g.fillStyle(0xa54a4a)
-    g.fillRect(20, 40, w - 40, h - 40)
-    
+    g.fillRect(20, 50, sw - 40, sh - 50)
     // Motif briques
-    for (let row = 0; row < 12; row++) {
-      for (let col = 0; col < 10; col++) {
+    for (let row = 0; row < 14; row++) {
+      for (let col = 0; col < 13; col++) {
         const offset = row % 2 === 0 ? 0 : 8
-        g.fillStyle(Phaser.Math.RND.pick([0x954040, 0xb55050, 0xa54a4a]))
-        g.fillRect(22 + offset + col * 16, 42 + row * 9, 14, 7)
+        g.fillStyle(Phaser.Math.RND.pick([0x954040, 0xb55050]))
+        g.fillRect(22 + offset + col * 16, 52 + row * 9, 14, 7)
       }
     }
-    
     // Grandes fenêtres
-    for (let i = 0; i < 5; i++) {
-      g.fillStyle(0x3a3a3a)
-      g.fillRect(30 + i * 32, 55, 26, 35)
+    for (let i = 0; i < 6; i++) {
+      g.fillStyle(0x2a2a2a)
+      g.fillRect(28 + i * 34, 65, 28, 40)
       g.fillStyle(0x87ceeb)
-      g.fillRect(32 + i * 32, 57, 22, 31)
-      // Croisillons
+      g.fillRect(30 + i * 34, 67, 24, 36)
       g.fillStyle(0xffffff)
-      g.fillRect(42 + i * 32, 57, 2, 31)
-      g.fillRect(32 + i * 32, 71, 22, 2)
+      g.fillRect(41 + i * 34, 67, 2, 36)
+      g.fillRect(30 + i * 34, 84, 24, 2)
     }
-    
-    // Entrée principale avec colonnes
+    // Entrée centrale
     g.fillStyle(0xe8e8e8)
-    g.fillRect(75, 30, 50, h - 30)
-    g.fillStyle(0xd8d8d8)
-    g.fillRect(80, 35, 40, h - 40)
-    
+    g.fillRect(90, 35, 60, sh - 35)
     // Colonnes
     g.fillStyle(0xf0f0f0)
-    g.fillRect(78, 35, 8, h - 45)
-    g.fillRect(114, 35, 8, h - 45)
-    
+    g.fillRect(92, 40, 10, sh - 50)
+    g.fillRect(138, 40, 10, sh - 50)
     // Porte double
     g.fillStyle(0x4a2a2a)
-    g.fillRect(85, h - 40, 30, 40)
+    g.fillRect(102, sh - 45, 36, 45)
     g.fillStyle(0x5a3a3a)
-    g.fillRect(87, h - 38, 12, 35)
-    g.fillRect(101, h - 38, 12, 35)
-    
-    // Fronton triangulaire
+    g.fillRect(104, sh - 43, 15, 40)
+    g.fillRect(121, sh - 43, 15, 40)
+    // Fronton
     g.fillStyle(0xd0d0d0)
     g.beginPath()
-    g.moveTo(70, 30)
-    g.lineTo(100, 10)
-    g.lineTo(130, 30)
+    g.moveTo(85, 35)
+    g.lineTo(120, 12)
+    g.lineTo(155, 35)
     g.closePath()
     g.fillPath()
-    
     // Horloge
     g.fillStyle(0xffffff)
-    g.fillCircle(100, 20, 8)
+    g.fillCircle(120, 24, 9)
     g.fillStyle(0x000000)
-    g.fillCircle(100, 20, 6)
+    g.fillCircle(120, 24, 7)
     g.fillStyle(0xffffff)
-    g.fillCircle(100, 20, 5)
-    g.lineStyle(1, 0x000000)
-    g.lineBetween(100, 20, 100, 16)
-    g.lineBetween(100, 20, 103, 20)
-    
-    // Panneau "ÉCOLE"
-    g.fillStyle(0x2a5a2a)
-    g.fillRect(85, 45, 30, 12)
-    
+    g.fillCircle(120, 24, 5)
     // Drapeau
-    g.fillStyle(0x666666)
-    g.fillRect(185, 10, 3, 35)
+    g.fillStyle(0x555555)
+    g.fillRect(sw - 20, 10, 3, 45)
     g.fillStyle(0x0055a4)
-    g.fillRect(188, 12, 5, 10)
+    g.fillRect(sw - 17, 12, 6, 12)
     g.fillStyle(0xffffff)
-    g.fillRect(193, 12, 5, 10)
+    g.fillRect(sw - 11, 12, 6, 12)
     g.fillStyle(0xef4135)
-    g.fillRect(198, 12, 5, 10)
+    g.fillRect(sw - 5, 12, 6, 12)
+    g.generateTexture('building_school', sw, sh)
     
-    g.generateTexture('building_school', w, h)
-  }
-
-  private generateWorkshop(g: Phaser.GameObjects.Graphics): void {
-    const w = 180, h = 130
+    // ATELIER NIRD - Hangar éco
+    const ww = 220, wh = 160
     g.clear()
-    
-    // Hangar en bois
+    // Hangar bois
     g.fillStyle(0xb8956a)
-    g.fillRect(0, 30, w, h - 30)
-    
-    // Planches horizontales
-    for (let i = 0; i < 10; i++) {
+    g.fillRect(0, 40, ww, wh - 40)
+    // Planches
+    for (let i = 0; i < 12; i++) {
       g.fillStyle(i % 2 === 0 ? 0xa88550 : 0xc8a57a)
-      g.fillRect(0, 30 + i * 10, w, 9)
+      g.fillRect(0, 40 + i * 10, ww, 9)
     }
-    
-    // Toit vert éco avec panneaux solaires
+    // Toit vert avec panneaux solaires
     g.fillStyle(0x4a8a4a)
     g.beginPath()
-    g.moveTo(0, 30)
-    g.lineTo(w/2, 5)
-    g.lineTo(w, 30)
+    g.moveTo(0, 40)
+    g.lineTo(ww / 2, 8)
+    g.lineTo(ww, 40)
     g.closePath()
     g.fillPath()
-    
     // Panneaux solaires
     g.fillStyle(0x1a2a4a)
-    g.fillRect(30, 15, 40, 12)
-    g.fillRect(110, 15, 40, 12)
-    g.fillStyle(0x2a3a5a)
-    g.lineStyle(1, 0x3a4a6a)
-    for (let i = 0; i < 4; i++) {
-      g.lineBetween(30 + i * 10, 15, 30 + i * 10, 27)
-      g.lineBetween(110 + i * 10, 15, 110 + i * 10, 27)
-    }
-    
+    g.fillRect(35, 20, 50, 15)
+    g.fillRect(135, 20, 50, 15)
     // Grande porte atelier
     g.fillStyle(0x5a4a3a)
-    g.fillRect(20, 50, 60, h - 50)
+    g.fillRect(20, 60, 80, wh - 60)
     g.fillStyle(0x6a5a4a)
-    g.fillRect(25, 55, 50, h - 60)
-    // Fenêtres porte
+    g.fillRect(25, 65, 70, wh - 70)
     g.fillStyle(0x87ceeb)
-    g.fillRect(30, 60, 18, 20)
-    g.fillRect(52, 60, 18, 20)
-    
+    g.fillRect(30, 70, 28, 25)
+    g.fillRect(62, 70, 28, 25)
     // Porte bureau
     g.fillStyle(0x5a4a3a)
-    g.fillRect(120, 70, 35, h - 70)
+    g.fillRect(140, 90, 45, wh - 90)
     g.fillStyle(0x87ceeb)
-    g.fillRect(125, 75, 25, 30)
-    
+    g.fillRect(145, 95, 35, 35)
     // Enseigne NIRD
     g.fillStyle(0x1a4a1a)
-    g.fillRect(85, 40, 50, 20)
+    g.fillRect(105, 50, 55, 25)
     g.fillStyle(0x22c55e)
-    g.fillRect(88, 43, 44, 14)
-    
-    // Logo Linux/Tux stylisé
+    g.fillRect(108, 53, 49, 19)
+    // Tux
     g.fillStyle(0xffa500)
-    g.fillCircle(165, 55, 12)
+    g.fillCircle(200, 65, 14)
     g.fillStyle(0x000000)
-    g.fillCircle(165, 55, 10)
+    g.fillCircle(200, 65, 10)
     g.fillStyle(0xffa500)
-    g.fillCircle(165, 55, 7)
-    g.fillStyle(0x000000)
-    g.fillCircle(162, 53, 2)
-    g.fillCircle(168, 53, 2)
-    g.fillStyle(0xffa500)
-    g.fillEllipse(165, 59, 4, 2)
+    g.fillCircle(200, 65, 6)
+    g.generateTexture('building_workshop', ww, wh)
     
-    g.generateTexture('building_workshop', w, h)
-  }
-
-  private generateHouse(g: Phaser.GameObjects.Graphics): void {
-    const w = 100, h = 90
+    // MAISON (neutre)
+    const hw = 120, hh = 110
     g.clear()
-    
     // Mur
     g.fillStyle(0xe8d8b8)
-    g.fillRect(10, 35, w - 20, h - 35)
-    
+    g.fillRect(10, 45, hw - 20, hh - 45)
     // Toit
     g.fillStyle(0xc84a3a)
     g.beginPath()
-    g.moveTo(5, 38)
-    g.lineTo(w/2, 8)
-    g.lineTo(w - 5, 38)
+    g.moveTo(5, 48)
+    g.lineTo(hw / 2, 12)
+    g.lineTo(hw - 5, 48)
     g.closePath()
     g.fillPath()
-    
     // Tuiles
-    for (let row = 0; row < 3; row++) {
-      const y = 20 + row * 7
-      for (let i = 0; i < 8; i++) {
+    for (let row = 0; row < 4; row++) {
+      for (let i = 0; i < 10; i++) {
         g.fillStyle(row % 2 === 0 ? 0xb83a2a : 0xd85a4a)
-        const x = 15 + i * 10 + (row % 2) * 5
-        g.fillRect(x, y, 9, 6)
+        g.fillRect(15 + i * 10 + (row % 2) * 5, 22 + row * 8, 9, 6)
       }
     }
-    
     // Cheminée
     g.fillStyle(0xa54040)
-    g.fillRect(70, 12, 12, 20)
-    
+    g.fillRect(85, 18, 14, 25)
     // Fenêtre
-    g.fillStyle(0x3a3a3a)
-    g.fillRect(20, 45, 28, 28)
+    g.fillStyle(0x2a2a2a)
+    g.fillRect(22, 55, 35, 35)
     g.fillStyle(0x87ceeb)
-    g.fillRect(22, 47, 24, 24)
+    g.fillRect(24, 57, 31, 31)
     g.fillStyle(0xffffff)
-    g.fillRect(33, 47, 2, 24)
-    g.fillRect(22, 58, 24, 2)
-    
+    g.fillRect(38, 57, 3, 31)
+    g.fillRect(24, 71, 31, 3)
     // Porte
     g.fillStyle(0x5a3a2a)
-    g.fillRect(58, 52, 24, h - 52)
+    g.fillRect(68, 65, 30, hh - 65)
     g.fillStyle(0xffd700)
-    g.fillCircle(76, 75, 3)
+    g.fillCircle(90, 90, 4)
+    g.generateTexture('building_house', hw, hh)
     
-    // Buissons devant
-    g.fillStyle(0x3a7a3a)
-    g.fillCircle(25, h - 5, 8)
-    g.fillCircle(75, h - 5, 8)
-    
-    g.generateTexture('building_house', w, h)
-  }
-
-  private generateApartment(g: Phaser.GameObjects.Graphics): void {
-    const w = 120, h = 160
+    // IMMEUBLE (neutre)
+    const aw = 140, ah = 200
     g.clear()
-    
     // Structure
     g.fillStyle(0xd8c8a8)
-    g.fillRect(0, 20, w, h - 20)
-    
-    // Balcons et fenêtres
-    for (let floor = 0; floor < 5; floor++) {
-      const y = 25 + floor * 28
-      
+    g.fillRect(0, 25, aw, ah - 25)
+    // Fenêtres et balcons
+    for (let floor = 0; floor < 6; floor++) {
+      const y = 32 + floor * 28
       for (let apt = 0; apt < 3; apt++) {
-        const x = 8 + apt * 38
-        
-        // Fenêtre
+        const x = 10 + apt * 44
         g.fillStyle(0x2a2a2a)
-        g.fillRect(x, y, 32, 22)
+        g.fillRect(x, y, 36, 22)
         g.fillStyle(Math.random() > 0.4 ? 0x87ceeb : 0xffeaa7)
-        g.fillRect(x + 2, y + 2, 28, 18)
-        
-        // Balcon (sauf RDC)
-        if (floor < 4) {
+        g.fillRect(x + 2, y + 2, 32, 18)
+        if (floor < 5) {
           g.fillStyle(0x888888)
-          g.fillRect(x - 2, y + 24, 36, 3)
-          // Rambarde
-          g.lineStyle(1, 0x666666)
-          g.lineBetween(x, y + 24, x, y + 28)
-          g.lineBetween(x + 30, y + 24, x + 30, y + 28)
+          g.fillRect(x - 2, y + 24, 40, 3)
         }
       }
     }
-    
     // Toit
     g.fillStyle(0x8a8a8a)
-    g.fillRect(0, 15, w, 8)
-    
+    g.fillRect(0, 20, aw, 8)
     // Entrée
     g.fillStyle(0x4a4a4a)
-    g.fillRect(45, h - 35, 30, 35)
+    g.fillRect(55, ah - 40, 30, 40)
     g.fillStyle(0x87ceeb)
-    g.fillRect(50, h - 30, 20, 25)
+    g.fillRect(60, ah - 35, 20, 30)
+    g.generateTexture('building_apartment', aw, ah)
     
-    // Numéro
-    g.fillStyle(0x2a4a6a)
-    g.fillRect(52, h - 45, 16, 12)
-    
-    g.generateTexture('building_apartment', w, h)
-  }
-
-  private generateShop(g: Phaser.GameObjects.Graphics): void {
-    const w = 90, h = 80
+    // COMMERCE (neutre)
+    const cw = 100, ch = 95
     g.clear()
-    
     // Structure
     g.fillStyle(0xe0d0b0)
-    g.fillRect(0, 20, w, h - 20)
-    
+    g.fillRect(0, 25, cw, ch - 25)
     // Vitrine
     g.fillStyle(0x2a3a4a)
-    g.fillRect(8, 35, w - 16, 35)
+    g.fillRect(8, 40, cw - 16, 40)
     g.fillStyle(0xadd8e6)
-    g.fillRect(10, 37, w - 20, 31)
-    
-    // Auvent rayé
-    for (let i = 0; i < 9; i++) {
+    g.fillRect(10, 42, cw - 20, 36)
+    // Auvent
+    for (let i = 0; i < 10; i++) {
       g.fillStyle(i % 2 === 0 ? 0xe74c3c : 0xffffff)
       g.beginPath()
-      g.moveTo(i * 10, 20)
-      g.lineTo(i * 10 + 10, 20)
-      g.lineTo(i * 10 + 10, 35)
-      g.lineTo(i * 10, 30)
+      g.moveTo(i * 10, 25)
+      g.lineTo(i * 10 + 10, 25)
+      g.lineTo(i * 10 + 10, 40)
+      g.lineTo(i * 10, 35)
       g.closePath()
       g.fillPath()
     }
-    
     // Porte
     g.fillStyle(0x4a3a2a)
-    g.fillRect(35, 50, 20, h - 50)
+    g.fillRect(40, 55, 20, ch - 55)
     g.fillStyle(0x87ceeb)
-    g.fillRect(38, 53, 14, 20)
-    
+    g.fillRect(43, 58, 14, 25)
     // Enseigne
     g.fillStyle(0x2a5a2a)
-    g.fillRect(15, 22, 60, 12)
+    g.fillRect(20, 28, 60, 12)
+    g.generateTexture('building_shop', cw, ch)
     
-    g.generateTexture('building_shop', w, h)
+    // BUREAU (neutre)
+    const ow = 160, oh = 220
+    g.clear()
+    // Structure béton
+    g.fillStyle(0x7a7a8a)
+    g.fillRect(0, 25, ow, oh - 25)
+    // Étages
+    for (let floor = 0; floor < 8; floor++) {
+      const y = 32 + floor * 24
+      g.fillStyle(0x6a6a7a)
+      g.fillRect(6, y, ow - 12, 21)
+      for (let win = 0; win < 5; win++) {
+        g.fillStyle(0x1a2a3a)
+        g.fillRect(12 + win * 30, y + 3, 24, 15)
+        g.fillStyle(Math.random() > 0.4 ? 0x87ceeb : 0xffeaa7)
+        g.fillRect(14 + win * 30, y + 5, 20, 11)
+      }
+    }
+    // Toit
+    g.fillStyle(0x5a5a6a)
+    g.fillRect(0, 20, ow, 8)
+    // Porte
+    g.fillStyle(0x2a2a3a)
+    g.fillRect(65, oh - 35, 30, 35)
+    g.fillStyle(0x5a5a6a)
+    g.fillRect(68, oh - 32, 24, 28)
+    g.generateTexture('building_office', ow, oh)
   }
 
   // ==================== VÉHICULES ====================
-
-  private generateCars(g: Phaser.GameObjects.Graphics): void {
+  private generateVehicles(g: Phaser.GameObjects.Graphics): void {
     const carColors = [
       { name: 'red', color: 0xc0392b },
       { name: 'blue', color: 0x2980b9 },
@@ -655,575 +464,504 @@ export class BootScene extends Phaser.Scene {
       { name: 'yellow', color: 0xf1c40f },
       { name: 'white', color: 0xecf0f1 },
       { name: 'black', color: 0x2c3e50 },
-      { name: 'silver', color: 0x95a5a6 },
     ]
     
     carColors.forEach(car => {
-      // Vue de dessus
       g.clear()
-      
       // Ombre
       g.fillStyle(0x000000)
       g.setAlpha(0.3)
-      g.fillEllipse(24, 38, 40, 16)
+      g.fillEllipse(32, 52, 54, 20)
       g.setAlpha(1)
-      
-      // Corps
+      // Corps principal
       g.fillStyle(car.color)
-      g.fillRoundedRect(4, 10, 40, 25, 5)
-      
+      g.fillRoundedRect(4, 14, 56, 36, 6)
       // Toit/vitres
       g.fillStyle(0x2c3e50)
-      g.fillRoundedRect(12, 14, 24, 17, 3)
-      
+      g.fillRoundedRect(14, 20, 36, 24, 4)
       // Vitres
       g.fillStyle(0x87ceeb)
-      g.fillRect(14, 16, 20, 6)  // Avant
-      g.fillRect(14, 24, 20, 5)  // Arrière
-      
-      // Phares
+      g.fillRect(16, 22, 32, 8)
+      g.fillRect(16, 32, 32, 8)
+      // Phares avant
       g.fillStyle(0xf5f5dc)
-      g.fillCircle(8, 14, 3)
-      g.fillCircle(8, 31, 3)
-      
+      g.fillCircle(10, 20, 4)
+      g.fillCircle(10, 44, 4)
       // Feux arrière
       g.fillStyle(0xff0000)
-      g.fillRect(40, 13, 4, 4)
-      g.fillRect(40, 28, 4, 4)
-      
+      g.fillRect(54, 18, 5, 5)
+      g.fillRect(54, 41, 5, 5)
       // Roues
       g.fillStyle(0x1a1a1a)
-      g.fillCircle(14, 8, 5)
-      g.fillCircle(34, 8, 5)
-      g.fillCircle(14, 37, 5)
-      g.fillCircle(34, 37, 5)
-      
+      g.fillCircle(18, 10, 7)
+      g.fillCircle(46, 10, 7)
+      g.fillCircle(18, 54, 7)
+      g.fillCircle(46, 54, 7)
       // Jantes
       g.fillStyle(0x888888)
-      g.fillCircle(14, 8, 2)
-      g.fillCircle(34, 8, 2)
-      g.fillCircle(14, 37, 2)
-      g.fillCircle(34, 37, 2)
-      
-      g.generateTexture(`car_${car.name}`, 48, 45)
+      g.fillCircle(18, 10, 3)
+      g.fillCircle(46, 10, 3)
+      g.fillCircle(18, 54, 3)
+      g.fillCircle(46, 54, 3)
+      g.generateTexture(`car_${car.name}`, 64, 64)
     })
   }
 
   // ==================== VÉGÉTATION ====================
-
-  private generateTrees(g: Phaser.GameObjects.Graphics): void {
-    // Arbre feuillu grand
+  private generateVegetation(g: Phaser.GameObjects.Graphics): void {
+    // Arbre grand
     g.clear()
-    // Tronc
     g.fillStyle(0x5a3a1a)
-    g.fillRect(22, 55, 12, 35)
+    g.fillRect(24, 60, 16, 40)
     g.fillStyle(0x4a2a0a)
-    g.fillRect(22, 55, 4, 35)
-    
-    // Feuillage multicouche
+    g.fillRect(24, 60, 5, 40)
     g.fillStyle(0x2a5a2a)
-    g.fillCircle(28, 40, 26)
+    g.fillCircle(32, 45, 30)
     g.fillStyle(0x3a7a3a)
-    g.fillCircle(20, 35, 18)
-    g.fillCircle(36, 35, 18)
+    g.fillCircle(22, 38, 22)
+    g.fillCircle(42, 38, 22)
     g.fillStyle(0x4a8a4a)
-    g.fillCircle(28, 25, 20)
+    g.fillCircle(32, 28, 24)
     g.fillStyle(0x5a9a5a)
-    g.fillCircle(28, 20, 12)
-    
-    // Détails feuilles
-    for (let i = 0; i < 15; i++) {
-      g.fillStyle(Phaser.Math.RND.pick([0x3a7a3a, 0x4a8a4a, 0x2a6a2a]))
-      g.fillCircle(12 + Math.random() * 32, 15 + Math.random() * 35, 3 + Math.random() * 4)
-    }
-    
-    g.generateTexture('tree', 56, 90)
-    
-    // Arbre moyen
-    g.clear()
-    g.fillStyle(0x5a3a1a)
-    g.fillRect(16, 40, 8, 25)
-    g.fillStyle(0x3a7a3a)
-    g.fillCircle(20, 28, 18)
-    g.fillStyle(0x4a8a4a)
-    g.fillCircle(20, 22, 14)
-    g.fillStyle(0x5a9a5a)
-    g.fillCircle(20, 18, 8)
-    g.generateTexture('tree_small', 40, 65)
+    g.fillCircle(32, 20, 14)
+    g.generateTexture('tree', 64, 100)
     
     // Sapin
     g.clear()
     g.fillStyle(0x4a2a0a)
-    g.fillRect(18, 70, 8, 20)
-    
+    g.fillRect(22, 75, 10, 25)
     g.fillStyle(0x1a4a2a)
     g.beginPath()
-    g.moveTo(22, 5)
-    g.lineTo(42, 35)
-    g.lineTo(2, 35)
+    g.moveTo(27, 8)
+    g.lineTo(50, 40)
+    g.lineTo(4, 40)
     g.closePath()
     g.fillPath()
-    
     g.fillStyle(0x2a5a3a)
     g.beginPath()
-    g.moveTo(22, 20)
-    g.lineTo(45, 55)
-    g.lineTo(-1, 55)
+    g.moveTo(27, 25)
+    g.lineTo(54, 60)
+    g.lineTo(0, 60)
     g.closePath()
     g.fillPath()
-    
     g.fillStyle(0x3a6a4a)
     g.beginPath()
-    g.moveTo(22, 40)
-    g.lineTo(48, 75)
-    g.lineTo(-4, 75)
+    g.moveTo(27, 45)
+    g.lineTo(58, 80)
+    g.lineTo(-4, 80)
     g.closePath()
     g.fillPath()
+    g.generateTexture('tree_pine', 58, 100)
     
-    g.generateTexture('tree_pine', 52, 90)
-    
-    // Palmier (bonus exotique)
-    g.clear()
-    g.fillStyle(0x8b4513)
-    g.fillRect(18, 30, 8, 50)
-    g.fillStyle(0x6b3510)
-    for (let i = 0; i < 5; i++) {
-      g.fillRect(18, 35 + i * 10, 8, 4)
-    }
-    // Feuilles de palmier
-    g.fillStyle(0x228b22)
-    for (let i = 0; i < 6; i++) {
-      const angle = (i * Math.PI) / 3
-      g.beginPath()
-      g.moveTo(22, 30)
-      g.lineTo(22 + Math.cos(angle) * 25, 25 + Math.sin(angle) * 20)
-      g.lineTo(22 + Math.cos(angle + 0.2) * 20, 22 + Math.sin(angle + 0.2) * 18)
-      g.closePath()
-      g.fillPath()
-    }
-    g.generateTexture('tree_palm', 50, 85)
-  }
-
-  private generateBushes(g: Phaser.GameObjects.Graphics): void {
-    // Buisson normal
+    // Buisson
     g.clear()
     g.fillStyle(0x2a5a2a)
-    g.fillCircle(16, 22, 16)
+    g.fillCircle(20, 26, 18)
     g.fillStyle(0x3a7a3a)
-    g.fillCircle(10, 18, 12)
-    g.fillCircle(22, 18, 12)
+    g.fillCircle(12, 20, 14)
+    g.fillCircle(28, 20, 14)
     g.fillStyle(0x4a8a4a)
-    g.fillCircle(16, 12, 10)
-    
-    // Petites fleurs
+    g.fillCircle(20, 14, 12)
     g.fillStyle(0xff69b4)
-    g.fillCircle(8, 14, 2)
-    g.fillCircle(24, 16, 2)
+    g.fillCircle(10, 16, 3)
+    g.fillCircle(30, 18, 3)
     g.fillStyle(0xffff00)
-    g.fillCircle(16, 10, 2)
+    g.fillCircle(20, 12, 3)
+    g.generateTexture('bush', 40, 36)
     
-    g.generateTexture('bush', 32, 32)
-    
-    // Buisson rond
-    g.clear()
-    g.fillStyle(0x2a5a2a)
-    g.fillCircle(16, 16, 14)
-    g.fillStyle(0x3a7a3a)
-    g.fillCircle(16, 14, 10)
-    g.fillStyle(0x4a8a4a)
-    g.fillCircle(16, 12, 6)
-    g.generateTexture('bush_round', 32, 32)
-    
-    // Haie
-    g.clear()
-    g.fillStyle(0x2a5a2a)
-    g.fillRect(0, 8, 64, 24)
-    g.fillStyle(0x3a7a3a)
-    for (let i = 0; i < 8; i++) {
-      g.fillCircle(4 + i * 8, 12, 6)
-    }
-    g.generateTexture('hedge', 64, 32)
-  }
-
-  private generateFlowers(g: Phaser.GameObjects.Graphics): void {
-    // Fleur rose
+    // Fleur
     g.clear()
     g.fillStyle(0x3a7a3a)
-    g.fillRect(7, 14, 2, 14)
+    g.fillRect(9, 16, 3, 18)
     g.fillStyle(0xff69b4)
     for (let i = 0; i < 5; i++) {
       const angle = (i * Math.PI * 2) / 5
-      g.fillCircle(8 + Math.cos(angle) * 4, 8 + Math.sin(angle) * 4, 3)
+      g.fillCircle(10 + Math.cos(angle) * 5, 10 + Math.sin(angle) * 5, 4)
     }
     g.fillStyle(0xffff00)
-    g.fillCircle(8, 8, 3)
-    g.generateTexture('flower', 16, 28)
+    g.fillCircle(10, 10, 4)
+    g.generateTexture('flower', 20, 34)
     
     // Fleur jaune
     g.clear()
     g.fillStyle(0x3a7a3a)
-    g.fillRect(7, 12, 2, 12)
+    g.fillRect(9, 14, 3, 16)
     g.fillStyle(0xffd700)
     for (let i = 0; i < 6; i++) {
       const angle = (i * Math.PI * 2) / 6
-      g.fillEllipse(8 + Math.cos(angle) * 4, 7 + Math.sin(angle) * 4, 4, 6)
+      g.fillEllipse(10 + Math.cos(angle) * 5, 9 + Math.sin(angle) * 5, 5, 7)
     }
     g.fillStyle(0x8b4513)
-    g.fillCircle(8, 7, 3)
-    g.generateTexture('flower_yellow', 16, 24)
+    g.fillCircle(10, 9, 4)
+    g.generateTexture('flower_yellow', 20, 30)
     
-    // Tulipe rouge
+    // Rocher
     g.clear()
-    g.fillStyle(0x3a7a3a)
-    g.fillRect(6, 12, 2, 14)
-    g.fillStyle(0xff4444)
-    g.beginPath()
-    g.moveTo(7, 4)
-    g.lineTo(12, 14)
-    g.lineTo(2, 14)
-    g.closePath()
-    g.fillPath()
-    g.generateTexture('flower_tulip', 14, 26)
+    g.fillStyle(0x6a6a6a)
+    g.fillCircle(20, 24, 18)
+    g.fillStyle(0x8a8a8a)
+    g.fillCircle(14, 18, 12)
+    g.fillStyle(0x9a9a9a)
+    g.fillCircle(10, 12, 6)
+    g.fillStyle(0x5a5a5a)
+    g.fillCircle(26, 26, 8)
+    g.generateTexture('rock', 40, 40)
   }
 
   // ==================== MOBILIER URBAIN ====================
-
-  private generateStreetFurniture(g: Phaser.GameObjects.Graphics): void {
-    // Lampadaire moderne
+  private generateFurniture(g: Phaser.GameObjects.Graphics): void {
+    // Lampadaire
     g.clear()
     g.fillStyle(0x3a3a3a)
-    g.fillRect(6, 20, 4, 60)
+    g.fillRect(8, 25, 5, 70)
     g.fillStyle(0x2a2a2a)
-    g.fillRect(2, 5, 12, 18)
+    g.fillRect(3, 6, 15, 22)
     g.fillStyle(0xfffacd)
-    g.fillRect(4, 8, 8, 12)
-    // Halo de lumière
+    g.fillRect(5, 10, 11, 14)
     g.fillStyle(0xfffff0)
-    g.setAlpha(0.3)
-    g.fillCircle(8, 14, 10)
+    g.setAlpha(0.4)
+    g.fillCircle(10, 17, 12)
     g.setAlpha(1)
-    g.generateTexture('lamppost', 16, 80)
-    
-    // Banc en bois
-    g.clear()
-    g.fillStyle(0x5a3a1a)
-    g.fillRect(0, 12, 40, 6)
-    g.fillRect(0, 20, 40, 4)
-    g.fillStyle(0x3a3a3a)
-    g.fillRect(4, 18, 4, 14)
-    g.fillRect(32, 18, 4, 14)
-    g.generateTexture('bench', 40, 32)
-    
-    // Poubelle verte
-    g.clear()
-    g.fillStyle(0x2a5a2a)
-    g.fillRect(4, 8, 16, 24)
-    g.fillStyle(0x1a4a1a)
-    g.fillRect(2, 6, 20, 4)
-    // Symbole recyclage
-    g.fillStyle(0xffffff)
-    g.fillCircle(12, 20, 5)
-    g.fillStyle(0x2a5a2a)
-    g.fillCircle(12, 20, 3)
-    g.generateTexture('trashcan', 24, 32)
-    
-    // Panneau de signalisation
-    g.clear()
-    g.fillStyle(0x4a4a4a)
-    g.fillRect(10, 20, 4, 40)
-    g.fillStyle(0x2a5a8a)
-    g.fillRoundedRect(0, 2, 24, 20, 3)
-    g.fillStyle(0xffffff)
-    g.fillRect(4, 8, 16, 2)
-    g.fillRect(4, 12, 12, 2)
-    g.generateTexture('sign', 24, 60)
-    
-    // Boîte aux lettres jaune
-    g.clear()
-    g.fillStyle(0xf1c40f)
-    g.fillRoundedRect(2, 10, 20, 25, 3)
-    g.fillStyle(0xe67e22)
-    g.fillRect(6, 18, 12, 3)
-    g.fillStyle(0x3a3a3a)
-    g.fillRect(10, 35, 4, 15)
-    g.generateTexture('mailbox', 24, 50)
+    g.generateTexture('lamppost', 21, 95)
     
     // Feu tricolore
     g.clear()
     g.fillStyle(0x2a2a2a)
-    g.fillRect(8, 30, 4, 40)
+    g.fillRect(10, 40, 6, 55)
     g.fillStyle(0x1a1a1a)
-    g.fillRoundedRect(4, 5, 12, 28, 2)
+    g.fillRoundedRect(5, 6, 16, 38, 3)
     g.fillStyle(0xff0000)
-    g.fillCircle(10, 10, 4)
+    g.fillCircle(13, 14, 5)
     g.fillStyle(0x4a4a00)
-    g.fillCircle(10, 19, 4)
+    g.fillCircle(13, 26, 5)
     g.fillStyle(0x004a00)
-    g.fillCircle(10, 28, 4)
-    g.generateTexture('traffic_light', 20, 70)
+    g.fillCircle(13, 38, 5)
+    g.generateTexture('traffic_light', 26, 95)
     
-    // Horodateur
+    // Banc
     g.clear()
-    g.fillStyle(0x5a5a5a)
-    g.fillRect(6, 25, 4, 25)
+    g.fillStyle(0x5a3a1a)
+    g.fillRect(0, 14, 50, 8)
+    g.fillRect(0, 24, 50, 5)
+    g.fillStyle(0x3a3a3a)
+    g.fillRect(6, 22, 5, 18)
+    g.fillRect(39, 22, 5, 18)
+    g.generateTexture('bench', 50, 40)
+    
+    // Poubelle
+    g.clear()
+    g.fillStyle(0x2a5a2a)
+    g.fillRect(5, 10, 20, 30)
+    g.fillStyle(0x1a4a1a)
+    g.fillRect(3, 8, 24, 5)
+    g.fillStyle(0xffffff)
+    g.fillCircle(15, 25, 6)
+    g.fillStyle(0x2a5a2a)
+    g.fillCircle(15, 25, 4)
+    g.generateTexture('trashcan', 30, 40)
+    
+    // Panneau
+    g.clear()
     g.fillStyle(0x4a4a4a)
-    g.fillRoundedRect(2, 8, 12, 20, 3)
-    g.fillStyle(0x87ceeb)
-    g.fillRect(4, 10, 8, 8)
-    g.generateTexture('parking_meter', 16, 50)
+    g.fillRect(12, 25, 5, 50)
+    g.fillStyle(0x2a5a8a)
+    g.fillRoundedRect(0, 3, 30, 25, 4)
+    g.fillStyle(0xffffff)
+    g.fillRect(5, 10, 20, 3)
+    g.fillRect(5, 16, 15, 3)
+    g.generateTexture('sign', 30, 75)
     
-    // Rocher décoratif
+    // Boîte aux lettres
     g.clear()
-    g.fillStyle(0x6a6a6a)
-    g.fillCircle(16, 20, 14)
-    g.fillStyle(0x8a8a8a)
-    g.fillCircle(12, 16, 10)
-    g.fillStyle(0x9a9a9a)
-    g.fillCircle(10, 12, 5)
-    g.fillStyle(0x5a5a5a)
-    g.fillCircle(20, 22, 6)
-    g.generateTexture('rock', 32, 32)
+    g.fillStyle(0xf1c40f)
+    g.fillRoundedRect(3, 12, 24, 30, 4)
+    g.fillStyle(0xe67e22)
+    g.fillRect(7, 22, 16, 4)
+    g.fillStyle(0x3a3a3a)
+    g.fillRect(12, 42, 6, 18)
+    g.generateTexture('mailbox', 30, 60)
     
     // Fontaine
     g.clear()
     g.fillStyle(0x888888)
-    g.fillCircle(32, 32, 28)
+    g.fillCircle(40, 40, 36)
     g.fillStyle(0x666666)
-    g.fillCircle(32, 32, 24)
+    g.fillCircle(40, 40, 30)
     g.fillStyle(0x5588aa)
-    g.fillCircle(32, 32, 20)
-    // Centre
+    g.fillCircle(40, 40, 24)
     g.fillStyle(0x777777)
-    g.fillCircle(32, 32, 8)
+    g.fillCircle(40, 40, 10)
     g.fillStyle(0x666666)
-    g.fillRect(30, 20, 4, 12)
-    // Jets d'eau
+    g.fillRect(38, 25, 5, 15)
     g.fillStyle(0x88ccff)
-    g.setAlpha(0.6)
-    g.fillCircle(32, 16, 4)
-    g.fillCircle(26, 20, 3)
-    g.fillCircle(38, 20, 3)
+    g.setAlpha(0.7)
+    g.fillCircle(40, 20, 5)
+    g.fillCircle(34, 24, 4)
+    g.fillCircle(46, 24, 4)
     g.setAlpha(1)
-    g.generateTexture('fountain', 64, 64)
+    g.generateTexture('fountain', 80, 80)
     
     // Arrêt de bus
     g.clear()
     g.fillStyle(0x3a3a3a)
-    g.fillRect(4, 30, 4, 50)
-    g.fillRect(32, 30, 4, 50)
-    // Toit
+    g.fillRect(5, 35, 5, 60)
+    g.fillRect(40, 35, 5, 60)
     g.fillStyle(0x2a5a8a)
-    g.fillRect(0, 25, 40, 8)
-    // Panneau
+    g.fillRect(0, 28, 50, 10)
     g.fillStyle(0x4a4a4a)
-    g.fillRect(6, 33, 28, 15)
+    g.fillRect(8, 40, 34, 18)
     g.fillStyle(0x2a5a8a)
-    g.fillRect(8, 35, 24, 11)
-    g.generateTexture('bus_stop', 40, 80)
+    g.fillRect(10, 42, 30, 14)
+    g.generateTexture('bus_stop', 50, 95)
   }
 
   // ==================== OBJETS DU JEU ====================
-
   private generateGameObjects(g: Phaser.GameObjects.Graphics): void {
-    // Ordinateur obsolète (à recycler)
+    // Ordinateur obsolète
     g.clear()
-    // Moniteur CRT
     g.fillStyle(0xc4b494)
-    g.fillRoundedRect(6, 2, 24, 20, 2)
+    g.fillRoundedRect(8, 3, 30, 24, 3)
     g.fillStyle(0x1a1a4a)
-    g.fillRect(9, 5, 18, 14)
-    // Écran bleu de la mort
+    g.fillRect(11, 6, 24, 18)
     g.fillStyle(0x0000aa)
-    g.fillRect(10, 6, 16, 12)
+    g.fillRect(12, 7, 22, 16)
     g.fillStyle(0xffffff)
-    g.fillRect(11, 8, 10, 2)
-    g.fillRect(11, 12, 8, 2)
-    // Unité centrale
+    g.fillRect(14, 10, 12, 3)
+    g.fillRect(14, 16, 10, 3)
     g.fillStyle(0xc4b494)
-    g.fillRect(0, 8, 8, 18)
-    // Voyant erreur
+    g.fillRect(0, 10, 10, 22)
     g.fillStyle(0xff0000)
-    g.fillCircle(4, 12, 2)
-    // X rouge
-    g.lineStyle(2, 0xff0000)
-    g.lineBetween(6, 2, 28, 22)
-    g.lineBetween(28, 2, 6, 22)
-    g.generateTexture('computer_old', 36, 28)
+    g.fillCircle(5, 16, 3)
+    g.lineStyle(3, 0xff0000)
+    g.lineBetween(8, 3, 35, 27)
+    g.lineBetween(35, 3, 8, 27)
+    g.generateTexture('computer_old', 45, 35)
     
-    // Ordinateur reconditionné Linux
+    // Ordinateur reconditionné
     g.clear()
-    // Écran plat moderne
     g.fillStyle(0x1a1a1a)
-    g.fillRoundedRect(4, 0, 28, 20, 2)
+    g.fillRoundedRect(5, 0, 35, 24, 3)
     g.fillStyle(0x0a2a0a)
-    g.fillRect(6, 2, 24, 16)
-    // Terminal Linux
+    g.fillRect(8, 3, 29, 18)
     g.fillStyle(0x22c55e)
-    g.fillRect(8, 4, 12, 2)
-    g.fillRect(8, 8, 18, 2)
-    g.fillRect(8, 12, 8, 2)
-    // Pied
+    g.fillRect(10, 5, 14, 3)
+    g.fillRect(10, 10, 22, 3)
+    g.fillRect(10, 15, 10, 3)
     g.fillStyle(0x2a2a2a)
-    g.fillRect(14, 20, 8, 4)
-    g.fillRect(10, 23, 16, 3)
-    // Check vert
+    g.fillRect(18, 24, 10, 5)
+    g.fillRect(12, 28, 22, 4)
     g.fillStyle(0x22c55e)
-    g.fillCircle(30, 22, 5)
+    g.fillCircle(38, 28, 6)
     g.lineStyle(2, 0xffffff)
-    g.lineBetween(27, 22, 29, 24)
-    g.lineBetween(29, 24, 33, 19)
-    g.generateTexture('computer_new', 36, 28)
+    g.lineBetween(35, 28, 37, 30)
+    g.lineBetween(37, 30, 42, 24)
+    g.generateTexture('computer_new', 45, 35)
     
-    // Icône interaction (étoile)
+    // Icône interaction
     g.clear()
     g.fillStyle(0xffd700)
     g.beginPath()
-    g.moveTo(16, 2)
-    g.lineTo(19, 10)
-    g.lineTo(28, 12)
-    g.lineTo(21, 18)
-    g.lineTo(24, 26)
-    g.lineTo(16, 21)
-    g.lineTo(8, 26)
-    g.lineTo(11, 18)
-    g.lineTo(4, 12)
-    g.lineTo(13, 10)
+    g.moveTo(20, 3)
+    g.lineTo(24, 12)
+    g.lineTo(34, 14)
+    g.lineTo(26, 22)
+    g.lineTo(29, 32)
+    g.lineTo(20, 26)
+    g.lineTo(11, 32)
+    g.lineTo(14, 22)
+    g.lineTo(6, 14)
+    g.lineTo(16, 12)
     g.closePath()
     g.fillPath()
     g.lineStyle(1, 0xffa500)
     g.strokePath()
-    g.generateTexture('interact_icon', 32, 28)
-    
-    // Clé USB
-    g.clear()
-    g.fillStyle(0x333333)
-    g.fillRoundedRect(2, 4, 20, 8, 2)
-    g.fillStyle(0xc0c0c0)
-    g.fillRect(18, 5, 8, 6)
-    g.fillStyle(0x22c55e)
-    g.fillCircle(8, 8, 2)
-    g.generateTexture('usb_drive', 28, 16)
-    
-    // Câble
-    g.clear()
-    // Câble ondulé avec des segments
-    g.fillStyle(0x333333)
-    g.fillRect(4, 7, 6, 3)
-    g.fillRect(10, 5, 6, 3)
-    g.fillRect(16, 9, 6, 3)
-    g.fillRect(22, 7, 6, 3)
-    // Connecteurs
-    g.fillStyle(0xc0c0c0)
-    g.fillRect(0, 5, 6, 6)
-    g.fillRect(26, 5, 6, 6)
-    g.generateTexture('cable', 32, 16)
+    g.generateTexture('interact_icon', 40, 35)
   }
 
-  // ==================== PERSONNAGE ====================
-
-  private generatePlayer(g: Phaser.GameObjects.Graphics): void {
-    // Idle
+  // ==================== PERSONNAGES ====================
+  private generateCharacters(g: Phaser.GameObjects.Graphics): void {
+    // Joueur idle
     g.clear()
-    
-    // Ombre
     g.fillStyle(0x000000)
     g.setAlpha(0.3)
-    g.fillEllipse(16, 46, 20, 8)
+    g.fillEllipse(20, 58, 26, 10)
     g.setAlpha(1)
-    
-    // Corps (T-shirt vert NIRD)
     g.fillStyle(0x22c55e)
-    g.fillRoundedRect(8, 18, 16, 18, 3)
-    
-    // Logo petit sur le t-shirt
+    g.fillRoundedRect(10, 22, 20, 24, 4)
     g.fillStyle(0x166534)
-    g.fillRect(12, 22, 8, 6)
-    
-    // Bras
+    g.fillRect(14, 28, 12, 8)
     g.fillStyle(0xffdbac)
-    g.fillRect(4, 20, 6, 12)
-    g.fillRect(22, 20, 6, 12)
-    
-    // Tête
+    g.fillRect(4, 24, 8, 16)
+    g.fillRect(28, 24, 8, 16)
     g.fillStyle(0xffdbac)
-    g.fillRoundedRect(8, 4, 16, 16, 4)
-    
-    // Cheveux
+    g.fillRoundedRect(10, 4, 20, 20, 5)
     g.fillStyle(0x4a3728)
-    g.fillRoundedRect(8, 2, 16, 10, 4)
-    g.fillRect(8, 8, 16, 4)
-    
-    // Yeux
+    g.fillRoundedRect(10, 2, 20, 12, 5)
+    g.fillRect(10, 10, 20, 5)
     g.fillStyle(0x000000)
-    g.fillCircle(12, 12, 2)
-    g.fillCircle(20, 12, 2)
+    g.fillCircle(15, 14, 2)
+    g.fillCircle(25, 14, 2)
     g.fillStyle(0xffffff)
-    g.fillCircle(11, 11, 1)
-    g.fillCircle(19, 11, 1)
-    
-    // Sourire
-    g.lineStyle(1, 0x8b4513)
-    g.beginPath()
-    g.arc(16, 14, 4, 0.2, Math.PI - 0.2)
-    g.strokePath()
-    
-    // Jean
+    g.fillCircle(14, 13, 1)
+    g.fillCircle(24, 13, 1)
     g.fillStyle(0x3b82f6)
-    g.fillRect(9, 34, 6, 12)
-    g.fillRect(17, 34, 6, 12)
-    
-    // Chaussures
+    g.fillRect(11, 44, 8, 15)
+    g.fillRect(21, 44, 8, 15)
     g.fillStyle(0x1a1a1a)
-    g.fillRoundedRect(8, 44, 7, 5, 2)
-    g.fillRoundedRect(17, 44, 7, 5, 2)
+    g.fillRoundedRect(10, 56, 9, 6, 2)
+    g.fillRoundedRect(21, 56, 9, 6, 2)
+    g.generateTexture('player_idle', 40, 64)
     
-    g.generateTexture('player_idle', 32, 50)
-    
-    // Animation de marche
+    // Animation marche
     for (let i = 0; i < 4; i++) {
       g.clear()
-      const legOffset = Math.sin(i * Math.PI / 2) * 4
-      const armOffset = Math.sin(i * Math.PI / 2) * 3
+      const legOffset = Math.sin(i * Math.PI / 2) * 5
+      const armOffset = Math.sin(i * Math.PI / 2) * 4
       const bobOffset = Math.abs(Math.sin(i * Math.PI / 2)) * 2
       
-      // Ombre
       g.fillStyle(0x000000)
       g.setAlpha(0.3)
-      g.fillEllipse(16, 46, 20, 8)
+      g.fillEllipse(20, 58, 26, 10)
       g.setAlpha(1)
-      
-      // Corps
       g.fillStyle(0x22c55e)
-      g.fillRoundedRect(8, 18 - bobOffset, 16, 18, 3)
+      g.fillRoundedRect(10, 22 - bobOffset, 20, 24, 4)
       g.fillStyle(0x166534)
-      g.fillRect(12, 22 - bobOffset, 8, 6)
-      
-      // Bras (balancement)
+      g.fillRect(14, 28 - bobOffset, 12, 8)
       g.fillStyle(0xffdbac)
-      g.fillRect(4, 20 - armOffset - bobOffset, 6, 12)
-      g.fillRect(22, 20 + armOffset - bobOffset, 6, 12)
-      
-      // Tête
+      g.fillRect(4, 24 - armOffset - bobOffset, 8, 16)
+      g.fillRect(28, 24 + armOffset - bobOffset, 8, 16)
       g.fillStyle(0xffdbac)
-      g.fillRoundedRect(8, 4 - bobOffset, 16, 16, 4)
+      g.fillRoundedRect(10, 4 - bobOffset, 20, 20, 5)
       g.fillStyle(0x4a3728)
-      g.fillRoundedRect(8, 2 - bobOffset, 16, 10, 4)
-      g.fillRect(8, 8 - bobOffset, 16, 4)
+      g.fillRoundedRect(10, 2 - bobOffset, 20, 12, 5)
+      g.fillRect(10, 10 - bobOffset, 20, 5)
       g.fillStyle(0x000000)
-      g.fillCircle(12, 12 - bobOffset, 2)
-      g.fillCircle(20, 12 - bobOffset, 2)
-      
-      // Jambes (marche)
+      g.fillCircle(15, 14 - bobOffset, 2)
+      g.fillCircle(25, 14 - bobOffset, 2)
       g.fillStyle(0x3b82f6)
-      g.fillRect(9, 34 + legOffset, 6, 12 - legOffset)
-      g.fillRect(17, 34 - legOffset, 6, 12 + legOffset)
-      
-      // Chaussures
+      g.fillRect(11, 44 + legOffset, 8, 14 - legOffset)
+      g.fillRect(21, 44 - legOffset, 8, 14 + legOffset)
       g.fillStyle(0x1a1a1a)
-      g.fillRoundedRect(8, 44 + legOffset, 7, 5, 2)
-      g.fillRoundedRect(17, 44 - legOffset, 7, 5, 2)
+      g.fillRoundedRect(10, 56 + legOffset, 9, 6, 2)
+      g.fillRoundedRect(21, 56 - legOffset, 9, 6, 2)
+      g.generateTexture(`player_walk_${i}`, 40, 64)
+    }
+    
+    // PNJ type 1 - Citoyen (chemise bleue)
+    g.clear()
+    g.fillStyle(0x000000)
+    g.setAlpha(0.3)
+    g.fillEllipse(20, 58, 26, 10)
+    g.setAlpha(1)
+    g.fillStyle(0x3b82f6)
+    g.fillRoundedRect(10, 22, 20, 24, 4)
+    g.fillStyle(0xffdbac)
+    g.fillRect(4, 24, 8, 16)
+    g.fillRect(28, 24, 8, 16)
+    g.fillStyle(0xffdbac)
+    g.fillRoundedRect(10, 4, 20, 20, 5)
+    g.fillStyle(0x2a2a2a)
+    g.fillRoundedRect(10, 2, 20, 12, 5)
+    g.fillRect(10, 10, 20, 5)
+    g.fillStyle(0x000000)
+    g.fillCircle(15, 14, 2)
+    g.fillCircle(25, 14, 2)
+    g.fillStyle(0x2a2a2a)
+    g.fillRect(11, 44, 8, 15)
+    g.fillRect(21, 44, 8, 15)
+    g.fillStyle(0x1a1a1a)
+    g.fillRoundedRect(10, 56, 9, 6, 2)
+    g.fillRoundedRect(21, 56, 9, 6, 2)
+    g.generateTexture('npc_citizen', 40, 64)
+    
+    // PNJ type 2 - Femme (robe rose)
+    g.clear()
+    g.fillStyle(0x000000)
+    g.setAlpha(0.3)
+    g.fillEllipse(20, 58, 26, 10)
+    g.setAlpha(1)
+    g.fillStyle(0xec4899)
+    g.fillRoundedRect(8, 22, 24, 30, 4)
+    g.fillStyle(0xffdbac)
+    g.fillRect(2, 24, 8, 14)
+    g.fillRect(30, 24, 8, 14)
+    g.fillStyle(0xffdbac)
+    g.fillRoundedRect(10, 4, 20, 20, 5)
+    g.fillStyle(0xf4d03f)
+    g.fillRoundedRect(8, 2, 24, 14, 6)
+    g.fillStyle(0x000000)
+    g.fillCircle(15, 14, 2)
+    g.fillCircle(25, 14, 2)
+    g.fillStyle(0xffdbac)
+    g.fillRect(14, 52, 5, 8)
+    g.fillRect(21, 52, 5, 8)
+    g.fillStyle(0x1a1a1a)
+    g.fillRoundedRect(13, 57, 6, 5, 2)
+    g.fillRoundedRect(20, 57, 6, 5, 2)
+    g.generateTexture('npc_woman', 40, 64)
+    
+    // PNJ type 3 - Technicien NIRD (combinaison verte)
+    g.clear()
+    g.fillStyle(0x000000)
+    g.setAlpha(0.3)
+    g.fillEllipse(20, 58, 26, 10)
+    g.setAlpha(1)
+    g.fillStyle(0x166534)
+    g.fillRoundedRect(10, 22, 20, 36, 4)
+    g.fillStyle(0x22c55e)
+    g.fillRect(14, 26, 12, 10)
+    g.fillStyle(0xffdbac)
+    g.fillRect(4, 24, 8, 16)
+    g.fillRect(28, 24, 8, 16)
+    g.fillStyle(0xffdbac)
+    g.fillRoundedRect(10, 4, 20, 20, 5)
+    g.fillStyle(0x166534)
+    g.fillRoundedRect(10, 2, 20, 8, 5)
+    g.fillStyle(0x000000)
+    g.fillCircle(15, 14, 2)
+    g.fillCircle(25, 14, 2)
+    g.fillStyle(0x1a1a1a)
+    g.fillRoundedRect(10, 56, 9, 6, 2)
+    g.fillRoundedRect(21, 56, 9, 6, 2)
+    g.generateTexture('npc_technician', 40, 64)
+    
+    // PNJ marche animations
+    for (let type = 0; type < 3; type++) {
+      const colors = [
+        { body: 0x3b82f6, hair: 0x2a2a2a, pants: 0x2a2a2a, name: 'citizen' },
+        { body: 0xec4899, hair: 0xf4d03f, pants: 0xec4899, name: 'woman' },
+        { body: 0x166534, hair: 0x166534, pants: 0x166534, name: 'technician' },
+      ][type]
       
-      g.generateTexture(`player_walk_${i}`, 32, 50)
+      for (let i = 0; i < 4; i++) {
+        g.clear()
+        const legOffset = Math.sin(i * Math.PI / 2) * 4
+        const armOffset = Math.sin(i * Math.PI / 2) * 3
+        
+        g.fillStyle(0x000000)
+        g.setAlpha(0.3)
+        g.fillEllipse(20, 58, 26, 10)
+        g.setAlpha(1)
+        g.fillStyle(colors.body)
+        g.fillRoundedRect(10, 22, 20, 24, 4)
+        g.fillStyle(0xffdbac)
+        g.fillRect(4, 24 - armOffset, 8, 16)
+        g.fillRect(28, 24 + armOffset, 8, 16)
+        g.fillStyle(0xffdbac)
+        g.fillRoundedRect(10, 4, 20, 20, 5)
+        g.fillStyle(colors.hair)
+        g.fillRoundedRect(10, 2, 20, 12, 5)
+        g.fillStyle(0x000000)
+        g.fillCircle(15, 14, 2)
+        g.fillCircle(25, 14, 2)
+        g.fillStyle(colors.pants)
+        g.fillRect(11, 44 + legOffset, 8, 14 - legOffset)
+        g.fillRect(21, 44 - legOffset, 8, 14 + legOffset)
+        g.fillStyle(0x1a1a1a)
+        g.fillRoundedRect(10, 56 + legOffset, 9, 6, 2)
+        g.fillRoundedRect(21, 56 - legOffset, 9, 6, 2)
+        g.generateTexture(`npc_${colors.name}_walk_${i}`, 40, 64)
+      }
     }
   }
 }
