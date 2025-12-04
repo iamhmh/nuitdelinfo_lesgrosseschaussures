@@ -6,7 +6,7 @@ import Phaser from 'phaser'
 interface Building {
   x: number
   y: number
-  type: 'enterprise' | 'workshop' | 'school' | 'house' | 'shop' | 'apartment' | 'office'
+  type: 'enterprise' | 'workshop' | 'school' | 'university' | 'house' | 'shop' | 'apartment' | 'office'
   name: string
   sprite?: Phaser.GameObjects.Image
 }
@@ -36,6 +36,31 @@ interface Car {
   lane: number
 }
 
+// Dimensions des bâtiments (en pixels) - correspondent aux textures générées dans BootScene
+interface BuildingSize {
+  width: number
+  height: number
+}
+
+const BUILDING_SIZES: Record<string, BuildingSize> = {
+  enterprise: { width: 192, height: 256 },
+  school: { width: 240, height: 180 },
+  university: { width: 320, height: 240 }, // Plus grand que l'école
+  workshop: { width: 220, height: 160 },
+  house: { width: 120, height: 110 },
+  apartment: { width: 140, height: 200 },
+  shop: { width: 100, height: 95 },
+  office: { width: 160, height: 220 },
+}
+
+// Zone occupée par un bâtiment (pour éviter superpositions)
+interface OccupiedZone {
+  minX: number
+  maxX: number
+  minY: number
+  maxY: number
+}
+
 export class MainScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite
   private playerSpeed: number = 180
@@ -43,18 +68,21 @@ export class MainScene extends Phaser.Scene {
   private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key }
   private interactKey!: Phaser.Input.Keyboard.Key
   
-  // Map dimensions - Grille bien définie
-  private mapWidth: number = 2560
-  private mapHeight: number = 1920
+  // Map dimensions - Carte agrandie pour plus d'espace
+  // 60 tiles x 45 tiles = 3840 x 2880 pixels
+  private mapWidth: number = 3840
+  private mapHeight: number = 2880
   private tileSize: number = 64
   
   // Layout de la ville (en tiles)
-  // Routes horizontales: y = 7, 15, 23 (en tiles, donc * 64 = pixels)
-  // Routes verticales: x = 10, 20, 30 (en tiles)
-  private roadTilesH = [7, 15, 23] // Lignes de routes horizontales
-  private roadTilesV = [10, 20, 30] // Colonnes de routes verticales
+  // Moins de routes pour plus d'espace constructible
+  // Routes horizontales: y = 15, 30 (2 routes au lieu de 3)
+  // Routes verticales: x = 20, 40 (2 routes au lieu de 3)
+  private roadTilesH = [15, 30] // Lignes de routes horizontales
+  private roadTilesV = [20, 40] // Colonnes de routes verticales
   
   private buildings: Building[] = []
+  private occupiedZones: OccupiedZone[] = [] // Zones occupées par les bâtiments
   private computers: CollectibleComputer[] = []
   private cars: Car[] = []
   private npcs: NPC[] = []
@@ -185,86 +213,193 @@ export class MainScene extends Phaser.Scene {
   }
 
   // ==================== BÂTIMENTS ====================
+  
+  /**
+   * Calcule la zone occupée par un bâtiment (en pixels)
+   * Le bâtiment a son origine en bas-centre, donc on calcule la zone autour de ce point
+   */
+  private getBuildingBounds(x: number, y: number, type: Building['type'], scale: number = 1): OccupiedZone {
+    const size = BUILDING_SIZES[type]
+    const w = size.width * scale
+    const h = size.height * scale
+    const spacing = this.tileSize // Espacement minimum d'une tuile
+    
+    return {
+      minX: x - w / 2 - spacing,
+      maxX: x + w / 2 + spacing,
+      minY: y - h - spacing,  // Le bâtiment s'étend vers le HAUT depuis y
+      maxY: y + spacing
+    }
+  }
+  
+  /**
+   * Vérifie si une zone chevauche une autre zone
+   */
+  private zonesOverlap(a: OccupiedZone, b: OccupiedZone): boolean {
+    return !(a.maxX < b.minX || a.minX > b.maxX || a.maxY < b.minY || a.minY > b.maxY)
+  }
+  
+  /**
+   * Vérifie si un bâtiment dépasse sur une route
+   */
+  private buildingOverlapsRoad(bounds: OccupiedZone): boolean {
+    // Vérifier routes horizontales
+    for (const roadY of this.roadTilesH) {
+      const roadMinY = (roadY - 1) * this.tileSize
+      const roadMaxY = (roadY + 3) * this.tileSize
+      if (bounds.minY < roadMaxY && bounds.maxY > roadMinY) {
+        // Le bâtiment est dans la zone Y de la route
+        return true
+      }
+    }
+    
+    // Vérifier routes verticales
+    for (const roadX of this.roadTilesV) {
+      const roadMinX = (roadX - 1) * this.tileSize
+      const roadMaxX = (roadX + 3) * this.tileSize
+      if (bounds.minX < roadMaxX && bounds.maxX > roadMinX) {
+        // Le bâtiment est dans la zone X de la route
+        // Mais seulement si sa zone Y touche la partie route
+        return true
+      }
+    }
+    
+    return false
+  }
+  
+  /**
+   * Vérifie si un bâtiment peut être placé à cette position
+   */
+  private canPlaceBuilding(x: number, y: number, type: Building['type'], scale: number = 1): boolean {
+    const bounds = this.getBuildingBounds(x, y, type, scale)
+    
+    // Vérifier les limites de la carte
+    if (bounds.minX < 0 || bounds.maxX > this.mapWidth || bounds.minY < 0 || bounds.maxY > this.mapHeight) {
+      return false
+    }
+    
+    // Vérifier si ça dépasse sur une route
+    if (this.buildingOverlapsRoad(bounds)) {
+      return false
+    }
+    
+    // Vérifier collision avec autres bâtiments
+    for (const zone of this.occupiedZones) {
+      if (this.zonesOverlap(bounds, zone)) {
+        return false
+      }
+    }
+    
+    return true
+  }
+  
+  /**
+   * Place un bâtiment et enregistre sa zone
+   */
+  private placeBuilding(tx: number, ty: number, type: Building['type'], name: string, scale: number = 1): boolean {
+    // Position en pixels (bas-centre du bâtiment)
+    const x = tx * this.tileSize + this.tileSize / 2
+    const y = ty * this.tileSize + this.tileSize
+    
+    if (!this.canPlaceBuilding(x, y, type, scale)) {
+      console.warn(`⚠️ Impossible de placer "${name}" à tile (${tx}, ${ty})`)
+      return false
+    }
+    
+    const bounds = this.getBuildingBounds(x, y, type, scale)
+    this.occupiedZones.push(bounds)
+    
+    this.buildings.push({ x, y, type, name })
+    return true
+  }
+  
   private createBuildings(): void {
-    // ZONE ENTREPRISES - Haut de la carte, groupées ensemble (aspect rigide)
-    // Entre les routes y=7 et y=0, et autour de x=10-30
-    this.addBuildingsInZone([
-      { tx: 2, ty: 3, type: 'enterprise', name: 'TechCorp Solutions' },
-      { tx: 5, ty: 2, type: 'enterprise', name: 'DataSoft Analytics' },
-      { tx: 5, ty: 4, type: 'office', name: 'ByteCloud Services' },
-      { tx: 8, ty: 3, type: 'enterprise', name: 'InfoSys Global' },
-    ])
+    /*
+     * ===========================================
+     * CARTE: 60 tiles (colonnes) x 45 tiles (lignes)
+     * ===========================================
+     * Routes H aux lignes: 15, 30 (avec trottoirs à -1 et +2)
+     * Routes V aux colonnes: 20, 40 (avec trottoirs à -1 et +2)
+     * 
+     * ZONES CONSTRUCTIBLES (herbe):
+     * - Zone A: colonnes 0-18,  lignes 0-13   (haut gauche)
+     * - Zone B: colonnes 24-38, lignes 0-13   (haut droite) 
+     * - Zone C: colonnes 44-59, lignes 0-13   (haut extrême droite)
+     * - Zone D: colonnes 0-18,  lignes 18-28  (milieu gauche)
+     * - Zone E: colonnes 24-38, lignes 18-28  (milieu centre)
+     * - Zone F: colonnes 44-59, lignes 18-28  (milieu droite)
+     * - Zone G: colonnes 0-18,  lignes 33-44  (bas gauche)
+     * - Zone H: colonnes 24-38, lignes 33-44  (bas centre)
+     * - Zone I: colonnes 44-59, lignes 33-44  (bas droite)
+     * ===========================================
+     */
     
-    // Deuxième zone entreprises (droite)
-    this.addBuildingsInZone([
-      { tx: 23, ty: 2, type: 'enterprise', name: 'GreenTech Inc' },
-      { tx: 26, ty: 3, type: 'enterprise', name: 'EcoData Systems' },
-      { tx: 23, ty: 4, type: 'office', name: 'Digital Factory' },
-      { tx: 26, ty: 5, type: 'office', name: 'Innovation Hub' },
-    ])
+    // ========== ZONE A: ENTREPRISES (haut gauche) ==========
+    this.placeBuilding(4, 10, 'enterprise', '🏢 TechCorp Solutions')
+    this.placeBuilding(10, 10, 'enterprise', '🏢 DataSoft Analytics')
+    this.placeBuilding(16, 10, 'office', '🏢 ByteCloud Services')
     
-    // ATELIER NIRD - Centre de la carte (entre routes)
-    this.buildings.push({
-      x: 15 * this.tileSize,
-      y: 12 * this.tileSize,
-      type: 'workshop',
-      name: '🔧 Atelier NIRD - Reconditionnement Linux'
-    })
+    // ========== ZONE B: ENTREPRISES (haut centre) ==========
+    this.placeBuilding(26, 10, 'enterprise', '🏢 GreenTech Inc')
+    this.placeBuilding(32, 10, 'office', '🏢 EcoData Systems')
     
-    // ÉCOLES - Bas de la carte, espacées
-    this.addBuildingsInZone([
-      { tx: 3, ty: 26, type: 'school', name: '📚 École Primaire Jean Jaurès' },
-      { tx: 14, ty: 27, type: 'school', name: '📚 Collège Victor Hugo' },
-      { tx: 25, ty: 26, type: 'school', name: '📚 Lycée Marie Curie' },
-      { tx: 36, ty: 27, type: 'school', name: '📚 École Montessori' },
-    ])
+    // ========== ZONE C: ENTREPRISES (haut droite) ==========
+    this.placeBuilding(48, 10, 'enterprise', '🏢 InfoSys Global')
+    this.placeBuilding(54, 10, 'office', '🏢 Innovation Hub')
     
-    // BÂTIMENTS NEUTRES - Remplissage de l'espace
-    // Zone résidentielle gauche
-    this.addBuildingsInZone([
-      { tx: 2, ty: 10, type: 'house', name: 'Maison Rose' },
-      { tx: 5, ty: 11, type: 'apartment', name: 'Résidence du Parc' },
-      { tx: 8, ty: 10, type: 'shop', name: 'Boulangerie Martin' },
-      { tx: 2, ty: 18, type: 'house', name: 'Villa Bleue' },
-      { tx: 5, ty: 19, type: 'shop', name: 'Café du Centre' },
-      { tx: 8, ty: 18, type: 'apartment', name: 'Les Jardins' },
-    ])
+    // ========== ZONE D: ATELIER + RÉSIDENTIEL (milieu gauche) ==========
+    this.placeBuilding(8, 24, 'workshop', '🔧 Atelier NIRD - Reconditionnement Linux')
+    this.placeBuilding(3, 22, 'house', '🏠 Maison Rose')
+    this.placeBuilding(15, 22, 'apartment', '🏢 Résidence du Parc')
     
-    // Zone résidentielle centre
-    this.addBuildingsInZone([
-      { tx: 13, ty: 10, type: 'shop', name: 'Librairie Pages' },
-      { tx: 17, ty: 11, type: 'apartment', name: 'Immeuble Central' },
-      { tx: 13, ty: 18, type: 'house', name: 'Pavillon Vert' },
-      { tx: 17, ty: 19, type: 'shop', name: 'Pharmacie Santé' },
-    ])
+    // ========== ZONE E: RÉSIDENTIEL (milieu centre) ==========
+    this.placeBuilding(26, 22, 'house', '🏠 Villa Bleue')
+    this.placeBuilding(30, 24, 'shop', '🏪 Boulangerie Martin')
+    this.placeBuilding(35, 22, 'apartment', '🏢 Les Jardins')
     
-    // Zone résidentielle droite
-    this.addBuildingsInZone([
-      { tx: 33, ty: 10, type: 'apartment', name: 'Les Terrasses' },
-      { tx: 36, ty: 11, type: 'house', name: 'Maison du Lac' },
-      { tx: 33, ty: 18, type: 'shop', name: 'Épicerie Bio' },
-      { tx: 36, ty: 19, type: 'house', name: 'Chalet Moderne' },
-    ])
+    // ========== ZONE F: RÉSIDENTIEL (milieu droite) ==========
+    this.placeBuilding(46, 22, 'shop', '🏪 Librairie Pages')
+    this.placeBuilding(52, 24, 'house', '🏠 Pavillon Vert')
+    this.placeBuilding(56, 22, 'shop', '🏪 Café du Centre')
     
-    // Créer les sprites
+    // ========== ZONE G: ÉCOLES (bas gauche) ==========
+    this.placeBuilding(5, 40, 'school', '📚 École Primaire Jean Jaurès')
+    this.placeBuilding(14, 40, 'school', '📚 Collège Victor Hugo')
+    
+    // ========== ZONE H: UNIVERSITÉ (bas centre) ==========
+    this.placeBuilding(30, 40, 'university', '🎓 Université Pierre et Marie Curie')
+    
+    // ========== ZONE I: ÉCOLES (bas droite) ==========
+    this.placeBuilding(46, 40, 'school', '📚 Lycée Marie Curie')
+    this.placeBuilding(54, 40, 'school', '📚 École Montessori')
+    
+    // Créer les sprites pour tous les bâtiments placés
     this.buildings.forEach(building => {
       const textureKey = `building_${building.type}`
       building.sprite = this.add.image(building.x, building.y, textureKey)
         .setOrigin(0.5, 1)
         .setDepth(building.y)
-        .setScale(1.2) // Bâtiments plus grands
     })
+    
+    // Debug: afficher les zones occupées
+    this.drawOccupiedZonesDebug()
   }
-
-  private addBuildingsInZone(defs: Array<{tx: number, ty: number, type: Building['type'], name: string}>): void {
-    defs.forEach(def => {
-      this.buildings.push({
-        x: def.tx * this.tileSize + this.tileSize / 2,
-        y: def.ty * this.tileSize + this.tileSize,
-        type: def.type,
-        name: def.name
-      })
+  
+  private drawOccupiedZonesDebug(): void {
+    const g = this.add.graphics()
+    g.lineStyle(2, 0xff00ff, 0.5)
+    
+    this.occupiedZones.forEach(zone => {
+      g.strokeRect(
+        zone.minX,
+        zone.minY,
+        zone.maxX - zone.minX,
+        zone.maxY - zone.minY
+      )
     })
+    
+    g.setDepth(5001)
+    this.debugGridContainer.add(g)
   }
 
   // ==================== ORDINATEURS ====================
@@ -366,16 +501,25 @@ export class MainScene extends Phaser.Scene {
   private createNPCs(): void {
     const npcTypes: Array<'citizen' | 'woman' | 'technician'> = ['citizen', 'woman', 'technician']
     
-    // PNJs fixes (sur les trottoirs)
+    // PNJs fixes (sur les trottoirs des nouvelles routes)
+    // Routes H: 15, 30 | Routes V: 20, 40
     const fixedNPCPositions = [
-      { tx: 9, ty: 6 },  // Trottoir près d'une intersection
-      { tx: 19, ty: 6 },
-      { tx: 9, ty: 14 },
-      { tx: 21, ty: 14 },
-      { tx: 9, ty: 22 },
-      { tx: 19, ty: 22 },
-      { tx: 31, ty: 6 },
-      { tx: 31, ty: 22 },
+      // Trottoirs route H ligne 15
+      { tx: 10, ty: 14 },
+      { tx: 30, ty: 14 },
+      { tx: 50, ty: 14 },
+      // Trottoirs route H ligne 30
+      { tx: 10, ty: 33 },
+      { tx: 30, ty: 33 },
+      { tx: 50, ty: 33 },
+      // Trottoirs route V colonne 20
+      { tx: 19, ty: 8 },
+      { tx: 19, ty: 25 },
+      { tx: 19, ty: 38 },
+      // Trottoirs route V colonne 40
+      { tx: 43, ty: 8 },
+      { tx: 43, ty: 25 },
+      { tx: 43, ty: 38 },
     ]
     
     fixedNPCPositions.forEach(pos => {
@@ -397,11 +541,10 @@ export class MainScene extends Phaser.Scene {
     
     // PNJs en mouvement (sur les trottoirs)
     const movingNPCPositions = [
-      { tx: 5, ty: 6, targetTx: 30 },
-      { tx: 28, ty: 14, targetTx: 5 },
-      { tx: 10, ty: 22, targetTx: 35 },
-      { tx: 15, ty: 6, targetTx: 25 },
-      { tx: 32, ty: 14, targetTx: 12 },
+      { tx: 5, ty: 14, targetTx: 55 },
+      { tx: 50, ty: 33, targetTx: 5 },
+      { tx: 19, ty: 5, targetTx: 19 },  // Se déplace verticalement via update
+      { tx: 43, ty: 40, targetTx: 43 },
     ]
     
     movingNPCPositions.forEach(pos => {
@@ -452,25 +595,30 @@ export class MainScene extends Phaser.Scene {
 
   // ==================== VÉGÉTATION ====================
   private createVegetation(): void {
+    const tilesX = 60 // Nouvelle largeur
+    const tilesY = 45 // Nouvelle hauteur
+    
     // Arbres - uniquement sur l'herbe
     const treePositions: Array<{tx: number, ty: number}> = []
     
     // Bordures de la carte
-    for (let tx = 0; tx < 40; tx += 3) {
-      if (!this.isTileOnRoadOrBuilding(tx, 0)) treePositions.push({ tx, ty: 1 })
-      if (!this.isTileOnRoadOrBuilding(tx, 29)) treePositions.push({ tx, ty: 28 })
+    for (let tx = 0; tx < tilesX; tx += 4) {
+      if (!this.isTileOnRoadOrBuilding(tx, 1)) treePositions.push({ tx, ty: 1 })
+      if (!this.isTileOnRoadOrBuilding(tx, tilesY - 2)) treePositions.push({ tx, ty: tilesY - 2 })
     }
-    for (let ty = 0; ty < 30; ty += 3) {
-      if (!this.isTileOnRoadOrBuilding(0, ty)) treePositions.push({ tx: 1, ty })
-      if (!this.isTileOnRoadOrBuilding(39, ty)) treePositions.push({ tx: 38, ty })
+    for (let ty = 0; ty < tilesY; ty += 4) {
+      if (!this.isTileOnRoadOrBuilding(1, ty)) treePositions.push({ tx: 1, ty })
+      if (!this.isTileOnRoadOrBuilding(tilesX - 2, ty)) treePositions.push({ tx: tilesX - 2, ty })
     }
     
-    // Arbres entre les zones
+    // Arbres entre les zones (adaptés à la nouvelle carte)
     const additionalTrees = [
-      { tx: 12, ty: 4 }, { tx: 18, ty: 4 }, { tx: 22, ty: 4 },
-      { tx: 12, ty: 12 }, { tx: 18, ty: 12 },
-      { tx: 12, ty: 20 }, { tx: 18, ty: 20 }, { tx: 28, ty: 20 },
-      { tx: 6, ty: 25 }, { tx: 20, ty: 25 }, { tx: 32, ty: 25 },
+      // Zone haute
+      { tx: 8, ty: 5 }, { tx: 14, ty: 5 }, { tx: 28, ty: 5 }, { tx: 34, ty: 5 }, { tx: 48, ty: 5 }, { tx: 54, ty: 5 },
+      // Zone milieu
+      { tx: 8, ty: 22 }, { tx: 14, ty: 22 }, { tx: 28, ty: 22 }, { tx: 34, ty: 22 }, { tx: 48, ty: 22 }, { tx: 54, ty: 22 },
+      // Zone basse
+      { tx: 8, ty: 38 }, { tx: 14, ty: 38 }, { tx: 28, ty: 38 }, { tx: 34, ty: 38 }, { tx: 48, ty: 38 }, { tx: 54, ty: 38 },
     ]
     treePositions.push(...additionalTrees.filter(p => !this.isTileOnRoadOrBuilding(p.tx, p.ty)))
     
@@ -485,12 +633,12 @@ export class MainScene extends Phaser.Scene {
     })
     
     // Buissons - sur l'herbe uniquement
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 60; i++) {
       let tx: number, ty: number
       let attempts = 0
       do {
-        tx = Math.floor(Math.random() * 40)
-        ty = Math.floor(Math.random() * 30)
+        tx = Math.floor(Math.random() * tilesX)
+        ty = Math.floor(Math.random() * tilesY)
         attempts++
       } while (this.isTileOnRoadOrBuilding(tx, ty) && attempts < 20)
       
@@ -505,12 +653,12 @@ export class MainScene extends Phaser.Scene {
     }
     
     // Fleurs - sur l'herbe uniquement
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 80; i++) {
       let tx: number, ty: number
       let attempts = 0
       do {
-        tx = Math.floor(Math.random() * 40)
-        ty = Math.floor(Math.random() * 30)
+        tx = Math.floor(Math.random() * tilesX)
+        ty = Math.floor(Math.random() * tilesY)
         attempts++
       } while (this.isTileOnRoadOrBuilding(tx, ty) && attempts < 20)
       
@@ -526,12 +674,12 @@ export class MainScene extends Phaser.Scene {
     }
     
     // Rochers
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 25; i++) {
       let tx: number, ty: number
       let attempts = 0
       do {
-        tx = Math.floor(Math.random() * 40)
-        ty = Math.floor(Math.random() * 30)
+        tx = Math.floor(Math.random() * tilesX)
+        ty = Math.floor(Math.random() * tilesY)
         attempts++
       } while (this.isTileOnRoadOrBuilding(tx, ty) && attempts < 20)
       
@@ -552,7 +700,7 @@ export class MainScene extends Phaser.Scene {
   private createStreetFurniture(): void {
     // Lampadaires le long des routes
     this.roadTilesH.forEach(roadY => {
-      for (let tx = 4; tx < 38; tx += 5) {
+      for (let tx = 4; tx < 58; tx += 6) {
         if (this.isTileOnRoadOrBuilding(tx, roadY - 1)) continue
         const px = tx * this.tileSize + 32
         const py = (roadY - 1) * this.tileSize + 64
@@ -560,14 +708,14 @@ export class MainScene extends Phaser.Scene {
       }
     })
     
-    // Bancs sur les trottoirs
+    // Bancs sur les trottoirs (adaptés aux nouvelles routes)
     const benchPositions = [
-      { tx: 5, ty: 6 }, { tx: 15, ty: 6 }, { tx: 25, ty: 6 },
-      { tx: 10, ty: 14 }, { tx: 25, ty: 14 },
-      { tx: 5, ty: 22 }, { tx: 15, ty: 22 }, { tx: 30, ty: 22 },
+      // Trottoir route H ligne 15
+      { tx: 8, ty: 14 }, { tx: 28, ty: 14 }, { tx: 48, ty: 14 },
+      // Trottoir route H ligne 30
+      { tx: 8, ty: 33 }, { tx: 28, ty: 33 }, { tx: 48, ty: 33 },
     ]
     benchPositions.forEach(pos => {
-      if (!this.isTileOnRoadOrBuilding(pos.tx, pos.ty)) return
       const px = pos.tx * this.tileSize + 32
       const py = pos.ty * this.tileSize + 48
       this.add.image(px, py, 'bench').setOrigin(0.5, 1).setDepth(py)
@@ -580,23 +728,30 @@ export class MainScene extends Phaser.Scene {
       this.add.image(px, py, 'trashcan').setOrigin(0.5, 1).setDepth(py)
     })
     
-    // Fontaine dans un espace vert (pas sur la route!)
-    const fountainTx = 15
-    const fountainTy = 25
-    if (!this.isTileOnRoadOrBuilding(fountainTx, fountainTy)) {
-      const px = fountainTx * this.tileSize + 32
-      const py = fountainTy * this.tileSize + 64
-      this.add.image(px, py, 'fountain')
-        .setOrigin(0.5, 0.5)
-        .setDepth(py + 40)
-        .setScale(1.3)
-    }
+    // Fontaines dans les espaces verts
+    const fountainPositions = [
+      { tx: 10, ty: 8 },   // Zone A
+      { tx: 50, ty: 8 },   // Zone C
+      { tx: 10, ty: 38 },  // Zone G
+      { tx: 50, ty: 38 },  // Zone I
+    ]
+    fountainPositions.forEach(pos => {
+      if (!this.isTileOnRoadOrBuilding(pos.tx, pos.ty)) {
+        const px = pos.tx * this.tileSize + 32
+        const py = pos.ty * this.tileSize + 64
+        this.add.image(px, py, 'fountain')
+          .setOrigin(0.5, 0.5)
+          .setDepth(py + 40)
+          .setScale(1.3)
+      }
+    })
     
-    // Panneaux d'indication
+    // Panneaux d'indication (aux intersections)
     const signPositions = [
-      { tx: 9, ty: 6 },
-      { tx: 19, ty: 14 },
-      { tx: 29, ty: 22 },
+      { tx: 19, ty: 14 },  // Intersection route V20 / H15
+      { tx: 43, ty: 14 },  // Intersection route V40 / H15
+      { tx: 19, ty: 33 },  // Intersection route V20 / H30
+      { tx: 43, ty: 33 },  // Intersection route V40 / H30
     ]
     signPositions.forEach(pos => {
       const px = pos.tx * this.tileSize + 48
@@ -775,17 +930,29 @@ export class MainScene extends Phaser.Scene {
       zoneGraphics.fillRect((roadX - 1) * this.tileSize, 0, 4 * this.tileSize, this.mapHeight)
     })
     
-    // Zone entreprises (bleu)
+    // Zone A: Entreprises haut gauche (bleu)
     zoneGraphics.fillStyle(0x0066ff, 0.1)
-    zoneGraphics.fillRect(1 * this.tileSize, 1 * this.tileSize, 8 * this.tileSize, 5 * this.tileSize)
-    zoneGraphics.fillRect(22 * this.tileSize, 1 * this.tileSize, 8 * this.tileSize, 5 * this.tileSize)
+    zoneGraphics.fillRect(0, 0, 19 * this.tileSize, 14 * this.tileSize)
     
-    // Zone écoles (vert)
+    // Zone B: Entreprises haut centre (bleu)
+    zoneGraphics.fillStyle(0x0066ff, 0.1)
+    zoneGraphics.fillRect(24 * this.tileSize, 0, 15 * this.tileSize, 14 * this.tileSize)
+    
+    // Zone C: Entreprises haut droite (bleu)
+    zoneGraphics.fillStyle(0x0066ff, 0.1)
+    zoneGraphics.fillRect(44 * this.tileSize, 0, 16 * this.tileSize, 14 * this.tileSize)
+    
+    // Zone D, E, F: Résidentiel milieu (jaune)
+    zoneGraphics.fillStyle(0xffaa00, 0.1)
+    zoneGraphics.fillRect(0, 18 * this.tileSize, 19 * this.tileSize, 11 * this.tileSize)
+    zoneGraphics.fillRect(24 * this.tileSize, 18 * this.tileSize, 15 * this.tileSize, 11 * this.tileSize)
+    zoneGraphics.fillRect(44 * this.tileSize, 18 * this.tileSize, 16 * this.tileSize, 11 * this.tileSize)
+    
+    // Zone G, H, I: Écoles/Université bas (vert)
     zoneGraphics.fillStyle(0x00ff00, 0.1)
-    zoneGraphics.fillRect(1 * this.tileSize, 25 * this.tileSize, 10 * this.tileSize, 4 * this.tileSize)
-    zoneGraphics.fillRect(12 * this.tileSize, 25 * this.tileSize, 8 * this.tileSize, 4 * this.tileSize)
-    zoneGraphics.fillRect(24 * this.tileSize, 25 * this.tileSize, 8 * this.tileSize, 4 * this.tileSize)
-    zoneGraphics.fillRect(33 * this.tileSize, 25 * this.tileSize, 6 * this.tileSize, 4 * this.tileSize)
+    zoneGraphics.fillRect(0, 33 * this.tileSize, 19 * this.tileSize, 12 * this.tileSize)
+    zoneGraphics.fillRect(24 * this.tileSize, 33 * this.tileSize, 15 * this.tileSize, 12 * this.tileSize)
+    zoneGraphics.fillRect(44 * this.tileSize, 33 * this.tileSize, 16 * this.tileSize, 12 * this.tileSize)
     
     this.debugGridContainer.add(zoneGraphics)
     this.debugGridContainer.setDepth(5000)

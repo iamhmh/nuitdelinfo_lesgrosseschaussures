@@ -274,6 +274,83 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(sw - 5, 12, 6, 12)
     g.generateTexture('building_school', sw, sh)
     
+    // UNIVERSITÉ - Grand campus moderne
+    const uw = 320, uh = 240
+    g.clear()
+    // Bâtiment principal - pierre noble
+    g.fillStyle(0xd4c8b8)
+    g.fillRect(20, 60, uw - 40, uh - 60)
+    // Ailes latérales
+    g.fillStyle(0xc8bca8)
+    g.fillRect(0, 80, 30, uh - 80)
+    g.fillRect(uw - 30, 80, 30, uh - 80)
+    // Colonnes majestueuses
+    g.fillStyle(0xe8e0d0)
+    for (let i = 0; i < 6; i++) {
+      g.fillRect(50 + i * 44, 70, 16, uh - 80)
+      g.fillStyle(0xf0e8d8)
+      g.fillRect(52 + i * 44, 70, 12, uh - 80)
+      g.fillStyle(0xe8e0d0)
+    }
+    // Fronton triangulaire
+    g.fillStyle(0xe0d8c8)
+    g.beginPath()
+    g.moveTo(40, 60)
+    g.lineTo(uw / 2, 15)
+    g.lineTo(uw - 40, 60)
+    g.closePath()
+    g.fillPath()
+    // Détails du fronton
+    g.fillStyle(0xc8c0b0)
+    g.beginPath()
+    g.moveTo(60, 58)
+    g.lineTo(uw / 2, 25)
+    g.lineTo(uw - 60, 58)
+    g.closePath()
+    g.fillPath()
+    // Grandes fenêtres cintrées
+    for (let i = 0; i < 5; i++) {
+      g.fillStyle(0x2a3a4a)
+      g.fillRect(55 + i * 50, 90, 35, 50)
+      // Arc
+      g.fillStyle(0x2a3a4a)
+      g.fillCircle(72 + i * 50, 90, 17)
+      // Vitre
+      g.fillStyle(0x87ceeb)
+      g.fillRect(58 + i * 50, 95, 29, 42)
+      g.fillCircle(72 + i * 50, 93, 14)
+    }
+    // Fenêtres étage
+    for (let i = 0; i < 7; i++) {
+      g.fillStyle(0x2a3a4a)
+      g.fillRect(40 + i * 40, 160, 28, 35)
+      g.fillStyle(0x87ceeb)
+      g.fillRect(42 + i * 40, 162, 24, 31)
+    }
+    // Porte monumentale
+    g.fillStyle(0x3a2a1a)
+    g.fillRect(130, uh - 70, 60, 70)
+    g.fillStyle(0x4a3a2a)
+    g.fillRect(135, uh - 65, 24, 60)
+    g.fillRect(161, uh - 65, 24, 60)
+    // Arc porte
+    g.fillStyle(0xd4c8b8)
+    g.fillCircle(160, uh - 70, 32)
+    g.fillStyle(0x3a2a1a)
+    g.fillCircle(160, uh - 70, 28)
+    // Dôme/coupole
+    g.fillStyle(0x4a6a8a)
+    g.fillCircle(uw / 2, 30, 25)
+    g.fillStyle(0x5a7a9a)
+    g.fillCircle(uw / 2, 28, 20)
+    // Flèche
+    g.fillStyle(0xffd700)
+    g.fillRect(uw / 2 - 2, 2, 4, 15)
+    // Enseigne
+    g.fillStyle(0x1a3a5a)
+    g.fillRect(uw / 2 - 45, 45, 90, 12)
+    g.generateTexture('building_university', uw, uh)
+    
     // ATELIER NIRD - Hangar éco
     const ww = 220, wh = 160
     g.clear()
