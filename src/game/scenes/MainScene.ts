@@ -184,7 +184,6 @@ export class MainScene extends Phaser.Scene {
   private createBuildings(): void {
     // ZONE ENTREPRISES - Haut de la carte, groupées ensemble (aspect rigide)
     // Entre les routes y=7 et y=0, et autour de x=10-30
-    const enterpriseZone = { minX: 2, maxX: 8, minY: 2, maxY: 5 }
     this.addBuildingsInZone([
       { tx: 2, ty: 3, type: 'enterprise', name: 'TechCorp Solutions' },
       { tx: 5, ty: 2, type: 'enterprise', name: 'DataSoft Analytics' },
@@ -317,7 +316,7 @@ export class MainScene extends Phaser.Scene {
     const carColors = ['red', 'blue', 'green', 'yellow', 'white', 'black']
     
     // Voitures sur les routes horizontales
-    this.roadTilesH.forEach((roadY, index) => {
+    this.roadTilesH.forEach((roadY) => {
       for (let i = 0; i < 2; i++) {
         const color = Phaser.Math.RND.pick(carColors)
         const laneY = (roadY + (i === 0 ? 0.3 : 1.3)) * this.tileSize + 32
@@ -338,7 +337,7 @@ export class MainScene extends Phaser.Scene {
     })
     
     // Voitures sur les routes verticales
-    this.roadTilesV.forEach((roadX, index) => {
+    this.roadTilesV.forEach((roadX) => {
       for (let i = 0; i < 2; i++) {
         const color = Phaser.Math.RND.pick(carColors)
         const laneX = (roadX + (i === 0 ? 0.3 : 1.3)) * this.tileSize + 32
@@ -816,8 +815,7 @@ export class MainScene extends Phaser.Scene {
           npc.sprite.setFlipX(dx < 0)
           npc.sprite.play(`npc_${npc.type}_walk`, true)
         } else {
-          // Arrivé à destination, retourner
-          const temp = npc.targetX
+          // Arrivé à destination, retourner dans l'autre sens
           npc.targetX = npc.sprite.x + (npc.direction === 'right' ? -1000 : 1000)
           npc.direction = npc.direction === 'right' ? 'left' : 'right'
         }
