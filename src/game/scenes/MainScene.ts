@@ -57,15 +57,17 @@ interface BuildingSize {
   height: number
 }
 
+// Tailles en tiles (1 tile = 64 pixels)
+const TILE_SIZE = 64
 const BUILDING_SIZES: Record<string, BuildingSize> = {
-  enterprise: { width: 192, height: 256 },
-  school: { width: 240, height: 180 },
-  university: { width: 320, height: 240 }, // Plus grand que l'école
-  workshop: { width: 220, height: 160 },
-  house: { width: 120, height: 110 },
-  apartment: { width: 140, height: 200 },
-  shop: { width: 100, height: 95 },
-  office: { width: 160, height: 220 },
+  enterprise: { width: 4 * TILE_SIZE, height: 6 * TILE_SIZE },  // 4x6 tiles = 256x384
+  school: { width: 3 * TILE_SIZE, height: 3 * TILE_SIZE },       // 3x3 tiles = 192x192
+  university: { width: 4 * TILE_SIZE, height: 4 * TILE_SIZE },   // 4x4 tiles = 256x256
+  workshop: { width: 3 * TILE_SIZE, height: 3 * TILE_SIZE },     // 3x3 tiles = 192x192
+  house: { width: 2 * TILE_SIZE, height: 2 * TILE_SIZE },        // 2x2 tiles = 128x128
+  apartment: { width: 3 * TILE_SIZE, height: 3 * TILE_SIZE },    // 3x3 tiles = 192x192
+  shop: { width: 2 * TILE_SIZE, height: 2 * TILE_SIZE },         // 2x2 tiles = 128x128
+  office: { width: 3 * TILE_SIZE, height: 4 * TILE_SIZE },       // 3x4 tiles = 192x256
 }
 
 // Zone occupée par un bâtiment (pour éviter superpositions)

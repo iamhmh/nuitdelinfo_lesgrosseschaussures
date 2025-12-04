@@ -181,290 +181,290 @@ export class BootScene extends Phaser.Scene {
 
   // ==================== BÂTIMENTS ====================
   private generateBuildings(g: Phaser.GameObjects.Graphics): void {
-    // ENTREPRISE - Grand immeuble moderne (carré, rigide)
-    const ew = 192, eh = 256
+    // ENTREPRISE - Grand immeuble moderne 4x6 tiles = 256x384
+    const ew = 256, eh = 384
     g.clear()
     // Structure principale - verre bleuté
     g.fillStyle(0x1a3a5a)
-    g.fillRect(0, 40, ew, eh - 40)
+    g.fillRect(0, 50, ew, eh - 50)
     // Façade vitrée
     g.fillStyle(0x2a5a8a)
-    g.fillRect(8, 48, ew - 16, eh - 60)
-    // Fenêtres en grille
-    for (let row = 0; row < 10; row++) {
+    g.fillRect(10, 60, ew - 20, eh - 75)
+    // Fenêtres en grille (plus de lignes pour un bâtiment plus grand)
+    for (let row = 0; row < 14; row++) {
       for (let col = 0; col < 6; col++) {
         g.fillStyle(0x1a3a5a)
-        g.fillRect(12 + col * 30, 52 + row * 20, 26, 16)
+        g.fillRect(16 + col * 38, 68 + row * 22, 32, 18)
         g.fillStyle(Math.random() > 0.3 ? 0x87ceeb : 0xffd700)
-        g.fillRect(14 + col * 30, 54 + row * 20, 22, 12)
+        g.fillRect(18 + col * 38, 70 + row * 22, 28, 14)
       }
     }
     // Toit
     g.fillStyle(0x2a4a6a)
-    g.fillRect(0, 35, ew, 10)
+    g.fillRect(0, 44, ew, 12)
     // Antennes
     g.fillStyle(0x555555)
-    g.fillRect(30, 10, 4, 30)
-    g.fillRect(150, 15, 4, 25)
+    g.fillRect(40, 12, 5, 35)
+    g.fillRect(200, 18, 5, 30)
     g.fillStyle(0xff0000)
-    g.fillCircle(32, 10, 4)
+    g.fillCircle(42, 12, 5)
     // Entrée
     g.fillStyle(0x0a1a2a)
-    g.fillRect(75, eh - 50, 42, 50)
+    g.fillRect(100, eh - 60, 56, 60)
     g.fillStyle(0x5a8aba)
-    g.fillRect(80, eh - 45, 32, 40)
+    g.fillRect(106, eh - 54, 44, 48)
     // Logo vert
     g.fillStyle(0x22c55e)
-    g.fillRect(85, 70, 22, 16)
+    g.fillRect(112, 90, 32, 22)
     g.generateTexture('building_enterprise', ew, eh)
     
-    // ÉCOLE - Bâtiment en brique avec cour
-    const sw = 240, sh = 180
+    // ÉCOLE - Bâtiment en brique 3x3 tiles = 192x192
+    const sw = 192, sh = 192
     g.clear()
     // Structure principale brique
     g.fillStyle(0xa54a4a)
-    g.fillRect(20, 50, sw - 40, sh - 50)
+    g.fillRect(15, 50, sw - 30, sh - 50)
     // Motif briques
-    for (let row = 0; row < 14; row++) {
-      for (let col = 0; col < 13; col++) {
+    for (let row = 0; row < 15; row++) {
+      for (let col = 0; col < 10; col++) {
         const offset = row % 2 === 0 ? 0 : 8
         g.fillStyle(Phaser.Math.RND.pick([0x954040, 0xb55050]))
-        g.fillRect(22 + offset + col * 16, 52 + row * 9, 14, 7)
+        g.fillRect(17 + offset + col * 16, 52 + row * 9, 14, 7)
       }
     }
     // Grandes fenêtres
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 4; i++) {
       g.fillStyle(0x2a2a2a)
-      g.fillRect(28 + i * 34, 65, 28, 40)
+      g.fillRect(22 + i * 40, 65, 32, 45)
       g.fillStyle(0x87ceeb)
-      g.fillRect(30 + i * 34, 67, 24, 36)
+      g.fillRect(24 + i * 40, 67, 28, 41)
       g.fillStyle(0xffffff)
-      g.fillRect(41 + i * 34, 67, 2, 36)
-      g.fillRect(30 + i * 34, 84, 24, 2)
+      g.fillRect(37 + i * 40, 67, 2, 41)
+      g.fillRect(24 + i * 40, 86, 28, 2)
     }
     // Entrée centrale
     g.fillStyle(0xe8e8e8)
-    g.fillRect(90, 35, 60, sh - 35)
+    g.fillRect(70, 35, 52, sh - 35)
     // Colonnes
     g.fillStyle(0xf0f0f0)
-    g.fillRect(92, 40, 10, sh - 50)
-    g.fillRect(138, 40, 10, sh - 50)
+    g.fillRect(72, 40, 8, sh - 50)
+    g.fillRect(112, 40, 8, sh - 50)
     // Porte double
     g.fillStyle(0x4a2a2a)
-    g.fillRect(102, sh - 45, 36, 45)
+    g.fillRect(82, sh - 50, 28, 50)
     g.fillStyle(0x5a3a3a)
-    g.fillRect(104, sh - 43, 15, 40)
-    g.fillRect(121, sh - 43, 15, 40)
+    g.fillRect(84, sh - 48, 11, 45)
+    g.fillRect(97, sh - 48, 11, 45)
     // Fronton
     g.fillStyle(0xd0d0d0)
     g.beginPath()
-    g.moveTo(85, 35)
-    g.lineTo(120, 12)
-    g.lineTo(155, 35)
+    g.moveTo(65, 35)
+    g.lineTo(96, 12)
+    g.lineTo(127, 35)
     g.closePath()
     g.fillPath()
     // Horloge
     g.fillStyle(0xffffff)
-    g.fillCircle(120, 24, 9)
+    g.fillCircle(96, 24, 8)
     g.fillStyle(0x000000)
-    g.fillCircle(120, 24, 7)
+    g.fillCircle(96, 24, 6)
     g.fillStyle(0xffffff)
-    g.fillCircle(120, 24, 5)
+    g.fillCircle(96, 24, 4)
     // Drapeau
     g.fillStyle(0x555555)
-    g.fillRect(sw - 20, 10, 3, 45)
+    g.fillRect(sw - 18, 10, 3, 40)
     g.fillStyle(0x0055a4)
-    g.fillRect(sw - 17, 12, 6, 12)
+    g.fillRect(sw - 15, 12, 5, 10)
     g.fillStyle(0xffffff)
-    g.fillRect(sw - 11, 12, 6, 12)
+    g.fillRect(sw - 10, 12, 5, 10)
     g.fillStyle(0xef4135)
-    g.fillRect(sw - 5, 12, 6, 12)
+    g.fillRect(sw - 5, 12, 5, 10)
     g.generateTexture('building_school', sw, sh)
     
-    // UNIVERSITÉ - Grand campus moderne
-    const uw = 320, uh = 240
+    // UNIVERSITÉ - Grand campus moderne 4x4 tiles = 256x256
+    const uw = 256, uh = 256
     g.clear()
     // Bâtiment principal - pierre noble
     g.fillStyle(0xd4c8b8)
-    g.fillRect(20, 60, uw - 40, uh - 60)
+    g.fillRect(15, 60, uw - 30, uh - 60)
     // Ailes latérales
     g.fillStyle(0xc8bca8)
-    g.fillRect(0, 80, 30, uh - 80)
-    g.fillRect(uw - 30, 80, 30, uh - 80)
+    g.fillRect(0, 80, 22, uh - 80)
+    g.fillRect(uw - 22, 80, 22, uh - 80)
     // Colonnes majestueuses
     g.fillStyle(0xe8e0d0)
-    for (let i = 0; i < 6; i++) {
-      g.fillRect(50 + i * 44, 70, 16, uh - 80)
+    for (let i = 0; i < 5; i++) {
+      g.fillRect(38 + i * 45, 70, 14, uh - 80)
       g.fillStyle(0xf0e8d8)
-      g.fillRect(52 + i * 44, 70, 12, uh - 80)
+      g.fillRect(40 + i * 45, 70, 10, uh - 80)
       g.fillStyle(0xe8e0d0)
     }
     // Fronton triangulaire
     g.fillStyle(0xe0d8c8)
     g.beginPath()
-    g.moveTo(40, 60)
-    g.lineTo(uw / 2, 15)
-    g.lineTo(uw - 40, 60)
+    g.moveTo(30, 60)
+    g.lineTo(uw / 2, 18)
+    g.lineTo(uw - 30, 60)
     g.closePath()
     g.fillPath()
     // Détails du fronton
     g.fillStyle(0xc8c0b0)
     g.beginPath()
-    g.moveTo(60, 58)
-    g.lineTo(uw / 2, 25)
-    g.lineTo(uw - 60, 58)
+    g.moveTo(48, 58)
+    g.lineTo(uw / 2, 28)
+    g.lineTo(uw - 48, 58)
     g.closePath()
     g.fillPath()
     // Grandes fenêtres cintrées
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 4; i++) {
       g.fillStyle(0x2a3a4a)
-      g.fillRect(55 + i * 50, 90, 35, 50)
+      g.fillRect(42 + i * 48, 90, 32, 50)
       // Arc
       g.fillStyle(0x2a3a4a)
-      g.fillCircle(72 + i * 50, 90, 17)
+      g.fillCircle(58 + i * 48, 90, 16)
       // Vitre
       g.fillStyle(0x87ceeb)
-      g.fillRect(58 + i * 50, 95, 29, 42)
-      g.fillCircle(72 + i * 50, 93, 14)
+      g.fillRect(45 + i * 48, 95, 26, 42)
+      g.fillCircle(58 + i * 48, 93, 13)
     }
     // Fenêtres étage
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 5; i++) {
       g.fillStyle(0x2a3a4a)
-      g.fillRect(40 + i * 40, 160, 28, 35)
+      g.fillRect(35 + i * 42, 165, 28, 35)
       g.fillStyle(0x87ceeb)
-      g.fillRect(42 + i * 40, 162, 24, 31)
+      g.fillRect(37 + i * 42, 167, 24, 31)
     }
     // Porte monumentale
     g.fillStyle(0x3a2a1a)
-    g.fillRect(130, uh - 70, 60, 70)
+    g.fillRect(100, uh - 70, 56, 70)
     g.fillStyle(0x4a3a2a)
-    g.fillRect(135, uh - 65, 24, 60)
-    g.fillRect(161, uh - 65, 24, 60)
+    g.fillRect(105, uh - 65, 22, 60)
+    g.fillRect(129, uh - 65, 22, 60)
     // Arc porte
     g.fillStyle(0xd4c8b8)
-    g.fillCircle(160, uh - 70, 32)
+    g.fillCircle(128, uh - 70, 30)
     g.fillStyle(0x3a2a1a)
-    g.fillCircle(160, uh - 70, 28)
+    g.fillCircle(128, uh - 70, 26)
     // Dôme/coupole
     g.fillStyle(0x4a6a8a)
-    g.fillCircle(uw / 2, 30, 25)
+    g.fillCircle(uw / 2, 32, 22)
     g.fillStyle(0x5a7a9a)
-    g.fillCircle(uw / 2, 28, 20)
+    g.fillCircle(uw / 2, 30, 17)
     // Flèche
     g.fillStyle(0xffd700)
-    g.fillRect(uw / 2 - 2, 2, 4, 15)
+    g.fillRect(uw / 2 - 2, 4, 4, 14)
     // Enseigne
     g.fillStyle(0x1a3a5a)
-    g.fillRect(uw / 2 - 45, 45, 90, 12)
+    g.fillRect(uw / 2 - 40, 48, 80, 10)
     g.generateTexture('building_university', uw, uh)
     
-    // ATELIER NIRD - Hangar éco
-    const ww = 220, wh = 160
+    // ATELIER NIRD - Hangar éco 3x3 tiles = 192x192
+    const ww = 192, wh = 192
     g.clear()
     // Hangar bois
     g.fillStyle(0xb8956a)
-    g.fillRect(0, 40, ww, wh - 40)
+    g.fillRect(0, 50, ww, wh - 50)
     // Planches
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 14; i++) {
       g.fillStyle(i % 2 === 0 ? 0xa88550 : 0xc8a57a)
-      g.fillRect(0, 40 + i * 10, ww, 9)
+      g.fillRect(0, 50 + i * 10, ww, 9)
     }
     // Toit vert avec panneaux solaires
     g.fillStyle(0x4a8a4a)
     g.beginPath()
-    g.moveTo(0, 40)
-    g.lineTo(ww / 2, 8)
-    g.lineTo(ww, 40)
+    g.moveTo(0, 50)
+    g.lineTo(ww / 2, 12)
+    g.lineTo(ww, 50)
     g.closePath()
     g.fillPath()
     // Panneaux solaires
     g.fillStyle(0x1a2a4a)
-    g.fillRect(35, 20, 50, 15)
-    g.fillRect(135, 20, 50, 15)
+    g.fillRect(28, 28, 45, 14)
+    g.fillRect(118, 28, 45, 14)
     // Grande porte atelier
     g.fillStyle(0x5a4a3a)
-    g.fillRect(20, 60, 80, wh - 60)
+    g.fillRect(15, 70, 75, wh - 70)
     g.fillStyle(0x6a5a4a)
-    g.fillRect(25, 65, 70, wh - 70)
+    g.fillRect(20, 75, 65, wh - 80)
     g.fillStyle(0x87ceeb)
-    g.fillRect(30, 70, 28, 25)
-    g.fillRect(62, 70, 28, 25)
+    g.fillRect(25, 80, 26, 28)
+    g.fillRect(55, 80, 26, 28)
     // Porte bureau
     g.fillStyle(0x5a4a3a)
-    g.fillRect(140, 90, 45, wh - 90)
+    g.fillRect(120, 100, 50, wh - 100)
     g.fillStyle(0x87ceeb)
-    g.fillRect(145, 95, 35, 35)
+    g.fillRect(126, 106, 38, 38)
     // Enseigne NIRD
     g.fillStyle(0x1a4a1a)
-    g.fillRect(105, 50, 55, 25)
+    g.fillRect(95, 58, 55, 25)
     g.fillStyle(0x22c55e)
-    g.fillRect(108, 53, 49, 19)
+    g.fillRect(98, 61, 49, 19)
     // Tux
     g.fillStyle(0xffa500)
-    g.fillCircle(200, 65, 14)
+    g.fillCircle(175, 70, 12)
     g.fillStyle(0x000000)
-    g.fillCircle(200, 65, 10)
+    g.fillCircle(175, 70, 8)
     g.fillStyle(0xffa500)
-    g.fillCircle(200, 65, 6)
+    g.fillCircle(175, 70, 5)
     g.generateTexture('building_workshop', ww, wh)
     
-    // MAISON (neutre)
-    const hw = 120, hh = 110
+    // MAISON (neutre) 2x2 tiles = 128x128
+    const hw = 128, hh = 128
     g.clear()
     // Mur
     g.fillStyle(0xe8d8b8)
-    g.fillRect(10, 45, hw - 20, hh - 45)
+    g.fillRect(10, 50, hw - 20, hh - 50)
     // Toit
     g.fillStyle(0xc84a3a)
     g.beginPath()
-    g.moveTo(5, 48)
-    g.lineTo(hw / 2, 12)
-    g.lineTo(hw - 5, 48)
+    g.moveTo(5, 53)
+    g.lineTo(hw / 2, 15)
+    g.lineTo(hw - 5, 53)
     g.closePath()
     g.fillPath()
     // Tuiles
     for (let row = 0; row < 4; row++) {
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 11; i++) {
         g.fillStyle(row % 2 === 0 ? 0xb83a2a : 0xd85a4a)
-        g.fillRect(15 + i * 10 + (row % 2) * 5, 22 + row * 8, 9, 6)
+        g.fillRect(14 + i * 10 + (row % 2) * 5, 26 + row * 8, 9, 6)
       }
     }
     // Cheminée
     g.fillStyle(0xa54040)
-    g.fillRect(85, 18, 14, 25)
+    g.fillRect(92, 22, 14, 28)
     // Fenêtre
     g.fillStyle(0x2a2a2a)
-    g.fillRect(22, 55, 35, 35)
+    g.fillRect(20, 60, 38, 38)
     g.fillStyle(0x87ceeb)
-    g.fillRect(24, 57, 31, 31)
+    g.fillRect(22, 62, 34, 34)
     g.fillStyle(0xffffff)
-    g.fillRect(38, 57, 3, 31)
-    g.fillRect(24, 71, 31, 3)
+    g.fillRect(38, 62, 3, 34)
+    g.fillRect(22, 78, 34, 3)
     // Porte
     g.fillStyle(0x5a3a2a)
-    g.fillRect(68, 65, 30, hh - 65)
+    g.fillRect(72, 72, 34, hh - 72)
     g.fillStyle(0xffd700)
-    g.fillCircle(90, 90, 4)
+    g.fillCircle(96, 100, 4)
     g.generateTexture('building_house', hw, hh)
     
-    // IMMEUBLE (neutre)
-    const aw = 140, ah = 200
+    // IMMEUBLE (neutre) 3x3 tiles = 192x192
+    const aw = 192, ah = 192
     g.clear()
     // Structure
     g.fillStyle(0xd8c8a8)
     g.fillRect(0, 25, aw, ah - 25)
     // Fenêtres et balcons
-    for (let floor = 0; floor < 6; floor++) {
-      const y = 32 + floor * 28
-      for (let apt = 0; apt < 3; apt++) {
-        const x = 10 + apt * 44
+    for (let floor = 0; floor < 5; floor++) {
+      const y = 32 + floor * 32
+      for (let apt = 0; apt < 4; apt++) {
+        const x = 12 + apt * 46
         g.fillStyle(0x2a2a2a)
-        g.fillRect(x, y, 36, 22)
+        g.fillRect(x, y, 38, 26)
         g.fillStyle(Math.random() > 0.4 ? 0x87ceeb : 0xffeaa7)
-        g.fillRect(x + 2, y + 2, 32, 18)
-        if (floor < 5) {
+        g.fillRect(x + 2, y + 2, 34, 22)
+        if (floor < 4) {
           g.fillStyle(0x888888)
-          g.fillRect(x - 2, y + 24, 40, 3)
+          g.fillRect(x - 2, y + 28, 42, 3)
         }
       }
     }
@@ -473,69 +473,69 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(0, 20, aw, 8)
     // Entrée
     g.fillStyle(0x4a4a4a)
-    g.fillRect(55, ah - 40, 30, 40)
+    g.fillRect(75, ah - 45, 42, 45)
     g.fillStyle(0x87ceeb)
-    g.fillRect(60, ah - 35, 20, 30)
+    g.fillRect(81, ah - 40, 30, 35)
     g.generateTexture('building_apartment', aw, ah)
     
-    // COMMERCE (neutre)
-    const cw = 100, ch = 95
+    // COMMERCE (neutre) 2x2 tiles = 128x128
+    const cw = 128, ch = 128
     g.clear()
     // Structure
     g.fillStyle(0xe0d0b0)
-    g.fillRect(0, 25, cw, ch - 25)
+    g.fillRect(0, 30, cw, ch - 30)
     // Vitrine
     g.fillStyle(0x2a3a4a)
-    g.fillRect(8, 40, cw - 16, 40)
+    g.fillRect(10, 48, cw - 20, 50)
     g.fillStyle(0xadd8e6)
-    g.fillRect(10, 42, cw - 20, 36)
+    g.fillRect(12, 50, cw - 24, 46)
     // Auvent
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 13; i++) {
       g.fillStyle(i % 2 === 0 ? 0xe74c3c : 0xffffff)
       g.beginPath()
-      g.moveTo(i * 10, 25)
-      g.lineTo(i * 10 + 10, 25)
-      g.lineTo(i * 10 + 10, 40)
-      g.lineTo(i * 10, 35)
+      g.moveTo(i * 10, 30)
+      g.lineTo(i * 10 + 10, 30)
+      g.lineTo(i * 10 + 10, 48)
+      g.lineTo(i * 10, 42)
       g.closePath()
       g.fillPath()
     }
     // Porte
     g.fillStyle(0x4a3a2a)
-    g.fillRect(40, 55, 20, ch - 55)
+    g.fillRect(50, 70, 28, ch - 70)
     g.fillStyle(0x87ceeb)
-    g.fillRect(43, 58, 14, 25)
+    g.fillRect(54, 74, 20, 32)
     // Enseigne
     g.fillStyle(0x2a5a2a)
-    g.fillRect(20, 28, 60, 12)
+    g.fillRect(25, 33, 78, 14)
     g.generateTexture('building_shop', cw, ch)
     
-    // BUREAU (neutre)
-    const ow = 160, oh = 220
+    // BUREAU (neutre) 3x4 tiles = 192x256
+    const ow = 192, oh = 256
     g.clear()
     // Structure béton
     g.fillStyle(0x7a7a8a)
-    g.fillRect(0, 25, ow, oh - 25)
+    g.fillRect(0, 30, ow, oh - 30)
     // Étages
-    for (let floor = 0; floor < 8; floor++) {
-      const y = 32 + floor * 24
+    for (let floor = 0; floor < 9; floor++) {
+      const y = 38 + floor * 24
       g.fillStyle(0x6a6a7a)
-      g.fillRect(6, y, ow - 12, 21)
+      g.fillRect(8, y, ow - 16, 21)
       for (let win = 0; win < 5; win++) {
         g.fillStyle(0x1a2a3a)
-        g.fillRect(12 + win * 30, y + 3, 24, 15)
+        g.fillRect(14 + win * 36, y + 3, 28, 15)
         g.fillStyle(Math.random() > 0.4 ? 0x87ceeb : 0xffeaa7)
-        g.fillRect(14 + win * 30, y + 5, 20, 11)
+        g.fillRect(16 + win * 36, y + 5, 24, 11)
       }
     }
     // Toit
     g.fillStyle(0x5a5a6a)
-    g.fillRect(0, 20, ow, 8)
+    g.fillRect(0, 24, ow, 10)
     // Porte
     g.fillStyle(0x2a2a3a)
-    g.fillRect(65, oh - 35, 30, 35)
+    g.fillRect(76, oh - 45, 40, 45)
     g.fillStyle(0x5a5a6a)
-    g.fillRect(68, oh - 32, 24, 28)
+    g.fillRect(80, oh - 40, 32, 36)
     g.generateTexture('building_office', ow, oh)
   }
 
