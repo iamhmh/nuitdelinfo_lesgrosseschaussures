@@ -12,7 +12,7 @@ export const createPhaserConfig = (parent: HTMLElement): Phaser.Types.Core.GameC
   parent: parent,
   width: 1280,
   height: 720,
-  backgroundColor: '#0f172a',
+  backgroundColor: '#4a7c59',  // Vert herbe pour masquer les zones transparentes
   physics: {
     default: 'arcade',
     arcade: {

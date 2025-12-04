@@ -1,7 +1,53 @@
 /**
- * Scène de chargement - Génère les assets procéduralement
+ * Scène de chargement - Charge les tiles individuels découpés en 16x16
  */
 import Phaser from 'phaser'
+
+// Import des tiles individuels
+import tile_56 from '../../assets/assets_city/tiles_16x16_annotated/tile_0056.png'
+import tile_57 from '../../assets/assets_city/tiles_16x16_annotated/tile_0057.png'
+import tile_93 from '../../assets/assets_city/tiles_16x16_annotated/tile_0093.png'
+import tile_94 from '../../assets/assets_city/tiles_16x16_annotated/tile_0094.png'
+
+// Arbres
+import tile_429 from '../../assets/assets_city/tiles_16x16_annotated/tile_0429.png'
+import tile_430 from '../../assets/assets_city/tiles_16x16_annotated/tile_0430.png'
+import tile_466 from '../../assets/assets_city/tiles_16x16_annotated/tile_0466.png'
+import tile_467 from '../../assets/assets_city/tiles_16x16_annotated/tile_0467.png'
+import tile_503 from '../../assets/assets_city/tiles_16x16_annotated/tile_0503.png'
+import tile_504 from '../../assets/assets_city/tiles_16x16_annotated/tile_0504.png'
+
+// Buissons
+import tile_395 from '../../assets/assets_city/tiles_16x16_annotated/tile_0395.png'
+import tile_396 from '../../assets/assets_city/tiles_16x16_annotated/tile_0396.png'
+
+// Route
+import tile_666 from '../../assets/assets_city/tiles_16x16_annotated/tile_0666.png'
+import tile_667 from '../../assets/assets_city/tiles_16x16_annotated/tile_0667.png'
+import tile_703 from '../../assets/assets_city/tiles_16x16_annotated/tile_0703.png'
+import tile_704 from '../../assets/assets_city/tiles_16x16_annotated/tile_0704.png'
+
+// Bâtiments - Immeuble gris
+import tile_116 from '../../assets/assets_city/tiles_16x16_annotated/tile_0116.png'
+import tile_117 from '../../assets/assets_city/tiles_16x16_annotated/tile_0117.png'
+import tile_118 from '../../assets/assets_city/tiles_16x16_annotated/tile_0118.png'
+import tile_153 from '../../assets/assets_city/tiles_16x16_annotated/tile_0153.png'
+import tile_154 from '../../assets/assets_city/tiles_16x16_annotated/tile_0154.png'
+import tile_155 from '../../assets/assets_city/tiles_16x16_annotated/tile_0155.png'
+import tile_190 from '../../assets/assets_city/tiles_16x16_annotated/tile_0190.png'
+import tile_191 from '../../assets/assets_city/tiles_16x16_annotated/tile_0191.png'
+import tile_192 from '../../assets/assets_city/tiles_16x16_annotated/tile_0192.png'
+
+// Maison avec toit
+import tile_348 from '../../assets/assets_city/tiles_16x16_annotated/tile_0348.png'
+import tile_349 from '../../assets/assets_city/tiles_16x16_annotated/tile_0349.png'
+import tile_385 from '../../assets/assets_city/tiles_16x16_annotated/tile_0385.png'
+import tile_386 from '../../assets/assets_city/tiles_16x16_annotated/tile_0386.png'
+import tile_422 from '../../assets/assets_city/tiles_16x16_annotated/tile_0422.png'
+import tile_423 from '../../assets/assets_city/tiles_16x16_annotated/tile_0423.png'
+
+// Fleur
+import tile_359 from '../../assets/assets_city/tiles_16x16_annotated/tile_0359.png'
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -9,8 +55,13 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-  const width = this.cameras.main.width;
-  const height = this.cameras.main.height;
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+    
+    const progressBar = this.add.graphics()
+    const progressBox = this.add.graphics()
+    progressBox.fillStyle(0x1e293b, 0.8)
+    progressBox.fillRect(width / 2 - 160, height / 2 - 25, 320, 50)
 
   // Écran noir façon BIOS
   this.cameras.main.setBackgroundColor("#0b0b0b");
@@ -27,468 +78,290 @@ export class BootScene extends Phaser.Scene {
     }
   ).setOrigin(0.5);
 
-  // Texte façon BIOS log
-  const log = this.add.text(
-    width * 0.08,
-    height * 0.28,
-    "",
-    {
-      fontSize: "16px",
-      color: "#00FF41",
-      fontFamily: "monospace",
-      lineSpacing: 6
-    }
-  );
+    this.load.on('complete', () => {
+      progressBar.destroy()
+      progressBox.destroy()
+      loadingText.destroy()
+    })
 
-  // Curseur terminal clignotant
-  const cursor = this.add.text(
-    width * 0.08,
-    height * 0.28,
-    "█",
-    {
-      fontSize: "18px",
-      color: "#00FF41",
-      fontFamily: "monospace"
-    }
-  );
-
-  this.tweens.add({
-    targets: cursor,
-    alpha: 0,
-    duration: 400,
-    yoyo: true,
-    repeat: -1
-  });
-
-  // Lignes simulées façon kernel boot
-  const bootLines = [
-    "[ OK ] Initializing hardware...",
-    "[ OK ] Loading Linux kernel v6.5...",
-    "[ OK ] Mounting NIRD filesystem...",
-    "[ OK ] Detecting recycled hardware...",
-    "[ OK ] Recondition modules loaded.",
-    "[ OK ] Starting Recondi_Tech service...",
-    "[ OK ] Preparing virtual village...",
-    "[ .. ] Loading assets..."
-  ];
-
-  let shownLines = "";
-  let lineIndex = 0;
-
-  const interval = setInterval(() => {
-    if (lineIndex < bootLines.length) {
-      shownLines += bootLines[lineIndex] + "\n";
-      log.setText(shownLines);
-      lineIndex++;
-    } else {
-      clearInterval(interval);
-    }
-  }, 280);
-
-  // Mise à jour "progress" pendant chargement réel
-  this.load.on("progress", (value: number) => {
-    log.setText(
-      shownLines +
-      `[ .. ] Asset loading: ${Math.round(value * 100)}%`
-    );
-  });
-
-  // Fin du chargement
-  this.load.on("complete", () => {
-    log.setText(shownLines + "[ OK ] Boot sequence complete.");
-    setTimeout(() => {
-      header.destroy();
-      log.destroy();
-      cursor.destroy();
-    }, 300);
-  });
-}
+    // Charger les tiles individuels
+    // Herbe
+    this.load.image('tile_56', tile_56)
+    this.load.image('tile_57', tile_57)
+    this.load.image('tile_93', tile_93)
+    this.load.image('tile_94', tile_94)
+    
+    // Arbres
+    this.load.image('tile_429', tile_429)
+    this.load.image('tile_430', tile_430)
+    this.load.image('tile_466', tile_466)
+    this.load.image('tile_467', tile_467)
+    this.load.image('tile_503', tile_503)
+    this.load.image('tile_504', tile_504)
+    
+    // Buissons
+    this.load.image('tile_395', tile_395)
+    this.load.image('tile_396', tile_396)
+    
+    // Route
+    this.load.image('tile_666', tile_666)
+    this.load.image('tile_667', tile_667)
+    this.load.image('tile_703', tile_703)
+    this.load.image('tile_704', tile_704)
+    
+    // Bâtiments
+    this.load.image('tile_116', tile_116)
+    this.load.image('tile_117', tile_117)
+    this.load.image('tile_118', tile_118)
+    this.load.image('tile_153', tile_153)
+    this.load.image('tile_154', tile_154)
+    this.load.image('tile_155', tile_155)
+    this.load.image('tile_190', tile_190)
+    this.load.image('tile_191', tile_191)
+    this.load.image('tile_192', tile_192)
+    
+    // Maison
+    this.load.image('tile_348', tile_348)
+    this.load.image('tile_349', tile_349)
+    this.load.image('tile_385', tile_385)
+    this.load.image('tile_386', tile_386)
+    this.load.image('tile_422', tile_422)
+    this.load.image('tile_423', tile_423)
+    
+    // Fleur
+    this.load.image('tile_359', tile_359)
+  }
 
   create(): void {
-    // Générer les textures procéduralement
-    this.generateTextures()
+    // Assembler les textures composées à partir des tiles
+    this.createComposedTextures()
     
-    // Lancer la scène principale
+    // Créer les textures additionnelles (personnage, objets)
+    this.createAdditionalTextures()
+    
+    // Lancer les scènes
     this.scene.start('MainScene')
     this.scene.launch('UIScene')
   }
 
-  private generateTextures(): void {
-    // === PERSONNAGE ===
-    this.generateCharacterSprites()
+  /**
+   * Assemble plusieurs tiles 16x16 en textures plus grandes
+   */
+  private createComposedTextures(): void {
+    // === HERBE (2x2 tiles = 32x32, puis scale x2 = 64x64) ===
+    this.composeTiles('grass', [
+      ['tile_56', 'tile_57'],
+      ['tile_93', 'tile_94']
+    ], 2)
     
-    // === TILES DE SOL ===
-    this.generateGroundTiles()
+    // Herbe foncée (variante)
+    this.composeTiles('grass_dark', [
+      ['tile_57', 'tile_56'],
+      ['tile_94', 'tile_93']
+    ], 2)
     
-    // === BÂTIMENTS ===
-    this.generateBuildings()
+    // === ROUTE (2x2 tiles) ===
+    this.composeTiles('path', [
+      ['tile_666', 'tile_667'],
+      ['tile_703', 'tile_704']
+    ], 2)
     
-    // === OBJETS ===
-    this.generateObjects()
+    // === ARBRE (2x3 tiles) ===
+    this.composeTiles('tree', [
+      ['tile_429', 'tile_430'],
+      ['tile_466', 'tile_467'],
+      ['tile_503', 'tile_504']
+    ], 2)
     
-    // === ARBRES ET DÉCORS ===
-    this.generateDecorations()
+    // === BUISSON (2x1 tiles) ===
+    this.composeTiles('bush', [
+      ['tile_395', 'tile_396']
+    ], 2)
+    
+    // === IMMEUBLE (3x3 tiles) ===
+    this.composeTiles('building_enterprise', [
+      ['tile_116', 'tile_117', 'tile_118'],
+      ['tile_153', 'tile_154', 'tile_155'],
+      ['tile_190', 'tile_191', 'tile_192']
+    ], 3)
+    
+    // === MAISON (2x3 tiles) ===
+    this.composeTiles('building_house', [
+      ['tile_348', 'tile_349'],
+      ['tile_385', 'tile_386'],
+      ['tile_422', 'tile_423']
+    ], 3)
+    
+    // === ATELIER (réutilise immeuble pour l'instant) ===
+    this.composeTiles('building_workshop', [
+      ['tile_116', 'tile_117', 'tile_118'],
+      ['tile_153', 'tile_154', 'tile_155'],
+      ['tile_190', 'tile_191', 'tile_192']
+    ], 3)
+    
+    // === ÉCOLE (réutilise immeuble pour l'instant) ===
+    this.composeTiles('building_school', [
+      ['tile_116', 'tile_117', 'tile_118'],
+      ['tile_153', 'tile_154', 'tile_155'],
+      ['tile_190', 'tile_191', 'tile_192']
+    ], 3)
+    
+    // === FLEUR (1x1 tile) ===
+    this.composeTiles('flower', [
+      ['tile_359']
+    ], 2)
+    
+    // === PANNEAU (1x1 tile placeholder) ===
+    this.composeTiles('sign', [
+      ['tile_359']
+    ], 2)
+    
+    // === ROCHER (placeholder) ===
+    this.composeTiles('rock', [
+      ['tile_395']
+    ], 2)
   }
 
-  private generateCharacterSprites(): void {
-    const graphics = this.make.graphics({ x: 0, y: 0 })
+  /**
+   * Compose plusieurs tiles en une seule texture
+   */
+  private composeTiles(name: string, tileGrid: string[][], scale: number): void {
+    const tileSize = 16
+    const rows = tileGrid.length
+    const cols = tileGrid[0].length
     
-    // Personnage idle (face)
-    graphics.clear()
-    // Corps
-    graphics.fillStyle(0x22c55e)
-    graphics.fillRoundedRect(8, 16, 16, 20, 4)
-    // Tête
-    graphics.fillStyle(0xfcd5b0)
-    graphics.fillCircle(16, 10, 8)
-    // Yeux
-    graphics.fillStyle(0x1e293b)
-    graphics.fillCircle(13, 9, 2)
-    graphics.fillCircle(19, 9, 2)
-    // Cheveux
-    graphics.fillStyle(0x4a3728)
-    graphics.fillRoundedRect(8, 2, 16, 8, 4)
-    // Jambes
-    graphics.fillStyle(0x3b82f6)
-    graphics.fillRect(10, 36, 5, 8)
-    graphics.fillRect(17, 36, 5, 8)
-    // Pieds
-    graphics.fillStyle(0x1e293b)
-    graphics.fillRect(9, 42, 6, 4)
-    graphics.fillRect(17, 42, 6, 4)
+    const canvas = document.createElement('canvas')
+    canvas.width = cols * tileSize * scale
+    canvas.height = rows * tileSize * scale
+    const ctx = canvas.getContext('2d')!
+    ctx.imageSmoothingEnabled = false
     
-    graphics.generateTexture('player_idle', 32, 48)
-    
-    // Personnage marche (4 frames)
-    for (let i = 0; i < 4; i++) {
-      graphics.clear()
-      const legOffset = Math.sin(i * Math.PI / 2) * 3
-      
-      // Corps
-      graphics.fillStyle(0x22c55e)
-      graphics.fillRoundedRect(8, 16, 16, 20, 4)
-      // Tête
-      graphics.fillStyle(0xfcd5b0)
-      graphics.fillCircle(16, 10, 8)
-      // Yeux
-      graphics.fillStyle(0x1e293b)
-      graphics.fillCircle(13, 9, 2)
-      graphics.fillCircle(19, 9, 2)
-      // Cheveux
-      graphics.fillStyle(0x4a3728)
-      graphics.fillRoundedRect(8, 2, 16, 8, 4)
-      // Jambes animées
-      graphics.fillStyle(0x3b82f6)
-      graphics.fillRect(10, 36 + legOffset, 5, 8)
-      graphics.fillRect(17, 36 - legOffset, 5, 8)
-      // Pieds
-      graphics.fillStyle(0x1e293b)
-      graphics.fillRect(9, 42 + legOffset, 6, 4)
-      graphics.fillRect(17, 42 - legOffset, 6, 4)
-      
-      graphics.generateTexture(`player_walk_${i}`, 32, 48)
-    }
-    
-    graphics.destroy()
-  }
-
-  private generateGroundTiles(): void {
-    const graphics = this.make.graphics({ x: 0, y: 0 })
-    
-    // Herbe normale
-    graphics.clear()
-    graphics.fillStyle(0x22c55e)
-    graphics.fillRect(0, 0, 64, 64)
-    // Détails d'herbe
-    graphics.fillStyle(0x16a34a)
-    for (let i = 0; i < 8; i++) {
-      const x = Math.random() * 60
-      const y = Math.random() * 60
-      graphics.fillRect(x, y, 3, 6)
-    }
-    graphics.generateTexture('grass', 64, 64)
-    
-    // Herbe foncée
-    graphics.clear()
-    graphics.fillStyle(0x15803d)
-    graphics.fillRect(0, 0, 64, 64)
-    graphics.fillStyle(0x166534)
-    for (let i = 0; i < 6; i++) {
-      const x = Math.random() * 60
-      const y = Math.random() * 60
-      graphics.fillRect(x, y, 4, 8)
-    }
-    graphics.generateTexture('grass_dark', 64, 64)
-    
-    // Chemin/route
-    graphics.clear()
-    graphics.fillStyle(0x78716c)
-    graphics.fillRect(0, 0, 64, 64)
-    // Pierres
-    graphics.fillStyle(0x57534e)
-    graphics.fillCircle(15, 20, 8)
-    graphics.fillCircle(45, 35, 10)
-    graphics.fillCircle(30, 50, 7)
-    graphics.generateTexture('path', 64, 64)
-    
-    // Eau
-    graphics.clear()
-    graphics.fillStyle(0x0ea5e9)
-    graphics.fillRect(0, 0, 64, 64)
-    graphics.fillStyle(0x38bdf8)
-    graphics.fillRect(10, 20, 40, 4)
-    graphics.fillRect(5, 40, 50, 4)
-    graphics.generateTexture('water', 64, 64)
-    
-    graphics.destroy()
-  }
-
-  private generateBuildings(): void {
-    const graphics = this.make.graphics({ x: 0, y: 0 })
-    
-    // === ENTREPRISE (bleue) ===
-    graphics.clear()
-    // Base
-    graphics.fillStyle(0x1e40af)
-    graphics.fillRect(0, 40, 128, 88)
-    // Façade
-    graphics.fillStyle(0x3b82f6)
-    graphics.fillRect(5, 45, 118, 78)
-    // Toit
-    graphics.fillStyle(0x1e3a8a)
-    graphics.beginPath()
-    graphics.moveTo(0, 40)
-    graphics.lineTo(64, 10)
-    graphics.lineTo(128, 40)
-    graphics.closePath()
-    graphics.fillPath()
-    // Fenêtres
-    graphics.fillStyle(0x93c5fd)
-    for (let row = 0; row < 2; row++) {
-      for (let col = 0; col < 4; col++) {
-        graphics.fillRect(15 + col * 28, 55 + row * 30, 18, 20)
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const tileKey = tileGrid[row][col]
+        if (this.textures.exists(tileKey)) {
+          const img = this.textures.get(tileKey).getSourceImage() as HTMLImageElement
+          ctx.drawImage(
+            img,
+            0, 0, tileSize, tileSize,
+            col * tileSize * scale, row * tileSize * scale,
+            tileSize * scale, tileSize * scale
+          )
+        }
       }
     }
-    // Porte
-    graphics.fillStyle(0x1e293b)
-    graphics.fillRect(52, 95, 24, 28)
-    // Panneau "ENTREPRISE"
-    graphics.fillStyle(0xfbbf24)
-    graphics.fillRect(30, 30, 68, 12)
-    graphics.generateTexture('building_enterprise', 128, 128)
     
-    // === ATELIER NIRD (orange/vert) ===
-    graphics.clear()
-    // Base
-    graphics.fillStyle(0x854d0e)
-    graphics.fillRect(0, 30, 160, 98)
-    // Façade
-    graphics.fillStyle(0xf59e0b)
-    graphics.fillRect(5, 35, 150, 88)
-    // Toit vert (éco)
-    graphics.fillStyle(0x15803d)
-    graphics.fillRect(0, 20, 160, 15)
-    graphics.fillStyle(0x22c55e)
-    graphics.fillRect(5, 22, 150, 10)
-    // Grande porte d'atelier
-    graphics.fillStyle(0x1e293b)
-    graphics.fillRect(20, 70, 50, 53)
-    graphics.fillRect(90, 70, 50, 53)
-    // Fenêtres rondes
-    graphics.fillStyle(0xfde68a)
-    graphics.fillCircle(45, 50, 12)
-    graphics.fillCircle(115, 50, 12)
-    // Logo Linux/Tux simplifié
-    graphics.fillStyle(0x1e293b)
-    graphics.fillCircle(80, 55, 15)
-    graphics.fillStyle(0xfbbf24)
-    graphics.fillCircle(80, 55, 10)
-    graphics.generateTexture('building_workshop', 160, 128)
-    
-    // === ÉCOLE (rose) ===
-    graphics.clear()
-    // Base
-    graphics.fillStyle(0x9d174d)
-    graphics.fillRect(0, 35, 144, 93)
-    // Façade
-    graphics.fillStyle(0xec4899)
-    graphics.fillRect(5, 40, 134, 83)
-    // Toit
-    graphics.fillStyle(0x831843)
-    graphics.beginPath()
-    graphics.moveTo(0, 35)
-    graphics.lineTo(72, 5)
-    graphics.lineTo(144, 35)
-    graphics.closePath()
-    graphics.fillPath()
-    // Clocher
-    graphics.fillStyle(0xfbbf24)
-    graphics.fillRect(65, 0, 14, 15)
-    // Fenêtres
-    graphics.fillStyle(0xfbcfe8)
-    for (let col = 0; col < 5; col++) {
-      graphics.fillRect(12 + col * 26, 55, 18, 25)
-    }
-    // Grande porte
-    graphics.fillStyle(0x7c3aed)
-    graphics.fillRect(57, 95, 30, 28)
-    graphics.generateTexture('building_school', 144, 128)
-    
-    // === MAISON (simple) ===
-    graphics.clear()
-    graphics.fillStyle(0x78350f)
-    graphics.fillRect(0, 30, 80, 50)
-    graphics.fillStyle(0xfbbf24)
-    graphics.fillRect(5, 35, 70, 40)
-    // Toit
-    graphics.fillStyle(0xdc2626)
-    graphics.beginPath()
-    graphics.moveTo(0, 30)
-    graphics.lineTo(40, 5)
-    graphics.lineTo(80, 30)
-    graphics.closePath()
-    graphics.fillPath()
-    // Fenêtre
-    graphics.fillStyle(0x7dd3fc)
-    graphics.fillRect(15, 45, 20, 20)
-    // Porte
-    graphics.fillStyle(0x78350f)
-    graphics.fillRect(50, 50, 18, 25)
-    graphics.generateTexture('building_house', 80, 80)
-    
-    graphics.destroy()
+    this.textures.addCanvas(name, canvas)
   }
 
-  private generateObjects(): void {
+  /**
+   * Crée les textures additionnelles (personnage, objets interactifs)
+   * qui ne sont pas dans le tileset
+   */
+  private createAdditionalTextures(): void {
     const graphics = this.make.graphics({ x: 0, y: 0 })
     
-    // === ORDINATEUR OBSOLÈTE (à collecter) ===
+    // === ORDINATEUR OBSOLÈTE ===
     graphics.clear()
-    // Moniteur CRT
-    graphics.fillStyle(0xd1d5db)
-    graphics.fillRoundedRect(4, 0, 24, 20, 3)
-    // Écran
-    graphics.fillStyle(0x1e40af)
-    graphics.fillRect(7, 3, 18, 12)
-    // BSOD effet
+    // Moniteur CRT beige
+    graphics.fillStyle(0xd4c4a4)
+    graphics.fillRect(6, 2, 20, 16)
+    // Écran bleu (BSOD)
+    graphics.fillStyle(0x0000aa)
+    graphics.fillRect(8, 4, 16, 12)
     graphics.fillStyle(0xffffff)
-    graphics.fillRect(10, 5, 12, 2)
-    graphics.fillRect(10, 9, 8, 2)
+    graphics.fillRect(10, 6, 10, 2)
+    graphics.fillRect(10, 10, 8, 2)
     // Base
-    graphics.fillStyle(0x9ca3af)
-    graphics.fillRect(8, 20, 16, 4)
+    graphics.fillStyle(0xc4b494)
+    graphics.fillRect(10, 18, 12, 4)
     // Tour
-    graphics.fillStyle(0xd1d5db)
-    graphics.fillRect(0, 8, 8, 16)
-    // Effet "obsolète" - X rouge
-    graphics.lineStyle(3, 0xef4444)
-    graphics.lineBetween(2, 0, 30, 24)
-    graphics.lineBetween(30, 0, 2, 24)
+    graphics.fillStyle(0xd4c4a4)
+    graphics.fillRect(0, 6, 8, 16)
+    // X rouge
+    graphics.lineStyle(2, 0xff0000)
+    graphics.lineBetween(4, 2, 28, 22)
+    graphics.lineBetween(28, 2, 4, 22)
     graphics.generateTexture('computer_old', 32, 28)
     
     // === ORDINATEUR RECONDITIONNÉ ===
     graphics.clear()
-    // Moniteur moderne
-    graphics.fillStyle(0x1e293b)
-    graphics.fillRoundedRect(4, 0, 24, 18, 2)
-    // Écran Linux
+    graphics.fillStyle(0x2a2a2a)
+    graphics.fillRect(4, 0, 24, 18)
+    graphics.fillStyle(0x1a3a1a)
+    graphics.fillRect(6, 2, 20, 14)
     graphics.fillStyle(0x22c55e)
-    graphics.fillRect(6, 2, 20, 13)
-    // Terminal
-    graphics.fillStyle(0x0f172a)
-    graphics.fillRect(8, 4, 16, 9)
-    graphics.fillStyle(0x22c55e)
-    graphics.fillRect(9, 5, 8, 2)
-    graphics.fillRect(9, 8, 12, 2)
-    // Base fine
-    graphics.fillStyle(0x374151)
+    graphics.fillRect(8, 4, 12, 2)
+    graphics.fillRect(8, 8, 16, 2)
+    graphics.fillRect(8, 12, 8, 2)
+    graphics.fillStyle(0x3a3a3a)
     graphics.fillRect(12, 18, 8, 3)
     graphics.fillRect(8, 21, 16, 2)
-    // Coeur vert
     graphics.fillStyle(0x22c55e)
-    graphics.fillCircle(28, 20, 5)
-    graphics.fillStyle(0x0f172a)
-    graphics.fillRect(26, 18, 4, 4)
+    graphics.fillCircle(28, 20, 4)
     graphics.generateTexture('computer_new', 32, 28)
     
-    // === INDICATEUR D'INTERACTION ===
+    // === ICÔNE INTERACTION ===
     graphics.clear()
-    graphics.fillStyle(0xfbbf24)
+    graphics.fillStyle(0xffd700)
     graphics.beginPath()
-    graphics.moveTo(16, 0)
-    graphics.lineTo(20, 8)
-    graphics.lineTo(28, 10)
-    graphics.lineTo(22, 16)
-    graphics.lineTo(24, 24)
-    graphics.lineTo(16, 20)
-    graphics.lineTo(8, 24)
-    graphics.lineTo(10, 16)
-    graphics.lineTo(4, 10)
-    graphics.lineTo(12, 8)
+    graphics.moveTo(16, 2)
+    graphics.lineTo(19, 10)
+    graphics.lineTo(28, 12)
+    graphics.lineTo(21, 18)
+    graphics.lineTo(24, 26)
+    graphics.lineTo(16, 21)
+    graphics.lineTo(8, 26)
+    graphics.lineTo(11, 18)
+    graphics.lineTo(4, 12)
+    graphics.lineTo(13, 10)
     graphics.closePath()
     graphics.fillPath()
     graphics.generateTexture('interact_icon', 32, 28)
     
-    graphics.destroy()
-  }
-
-  private generateDecorations(): void {
-    const graphics = this.make.graphics({ x: 0, y: 0 })
-    
-    // === ARBRE ===
+    // === PERSONNAGE ===
+    // Idle
     graphics.clear()
-    // Tronc
-    graphics.fillStyle(0x78350f)
-    graphics.fillRect(20, 50, 12, 30)
-    // Feuillage (3 cercles)
-    graphics.fillStyle(0x15803d)
-    graphics.fillCircle(26, 35, 22)
-    graphics.fillStyle(0x22c55e)
-    graphics.fillCircle(18, 28, 16)
-    graphics.fillCircle(34, 28, 16)
-    graphics.fillCircle(26, 18, 18)
-    graphics.generateTexture('tree', 52, 80)
+    graphics.fillStyle(0x22c55e) // T-shirt vert
+    graphics.fillRect(10, 18, 12, 16)
+    graphics.fillStyle(0xffdbac) // Tête
+    graphics.fillRect(10, 6, 12, 12)
+    graphics.fillStyle(0x4a3728) // Cheveux
+    graphics.fillRect(10, 4, 12, 6)
+    graphics.fillStyle(0x000000) // Yeux
+    graphics.fillRect(12, 10, 2, 2)
+    graphics.fillRect(18, 10, 2, 2)
+    graphics.fillStyle(0x3b82f6) // Jean
+    graphics.fillRect(11, 34, 4, 10)
+    graphics.fillRect(17, 34, 4, 10)
+    graphics.fillStyle(0x2a2a2a) // Chaussures
+    graphics.fillRect(10, 42, 5, 4)
+    graphics.fillRect(17, 42, 5, 4)
+    graphics.generateTexture('player_idle', 32, 48)
     
-    // === BUISSON ===
-    graphics.clear()
-    graphics.fillStyle(0x15803d)
-    graphics.fillCircle(16, 20, 16)
-    graphics.fillStyle(0x22c55e)
-    graphics.fillCircle(10, 16, 10)
-    graphics.fillCircle(22, 16, 10)
-    graphics.generateTexture('bush', 32, 32)
-    
-    // === FLEUR ===
-    graphics.clear()
-    // Tige
-    graphics.fillStyle(0x22c55e)
-    graphics.fillRect(7, 10, 2, 12)
-    // Pétales
-    graphics.fillStyle(0xfbbf24)
-    graphics.fillCircle(8, 6, 5)
-    graphics.fillStyle(0xf59e0b)
-    graphics.fillCircle(8, 6, 3)
-    graphics.generateTexture('flower', 16, 24)
-    
-    // === PANNEAU ===
-    graphics.clear()
-    // Poteau
-    graphics.fillStyle(0x78350f)
-    graphics.fillRect(14, 20, 4, 30)
-    // Panneau
-    graphics.fillStyle(0xfbbf24)
-    graphics.fillRect(0, 5, 32, 18)
-    graphics.fillStyle(0x78350f)
-    graphics.fillRect(2, 7, 28, 14)
-    graphics.generateTexture('sign', 32, 50)
-    
-    // === ROCHER ===
-    graphics.clear()
-    graphics.fillStyle(0x6b7280)
-    graphics.fillCircle(16, 20, 14)
-    graphics.fillStyle(0x9ca3af)
-    graphics.fillCircle(12, 16, 8)
-    graphics.generateTexture('rock', 32, 32)
+    // Walk frames
+    for (let i = 0; i < 4; i++) {
+      graphics.clear()
+      const legOffset = Math.sin(i * Math.PI / 2) * 3
+      
+      graphics.fillStyle(0x22c55e)
+      graphics.fillRect(10, 18, 12, 16)
+      graphics.fillStyle(0xffdbac)
+      graphics.fillRect(10, 6, 12, 12)
+      graphics.fillStyle(0x4a3728)
+      graphics.fillRect(10, 4, 12, 6)
+      graphics.fillStyle(0x000000)
+      graphics.fillRect(12, 10, 2, 2)
+      graphics.fillRect(18, 10, 2, 2)
+      graphics.fillStyle(0x3b82f6)
+      graphics.fillRect(11, 34 + legOffset, 4, 10)
+      graphics.fillRect(17, 34 - legOffset, 4, 10)
+      graphics.fillStyle(0x2a2a2a)
+      graphics.fillRect(10, 42 + legOffset, 5, 4)
+      graphics.fillRect(17, 42 - legOffset, 5, 4)
+      
+      graphics.generateTexture(`player_walk_${i}`, 32, 48)
+    }
     
     graphics.destroy()
   }
