@@ -107,7 +107,6 @@ export class MainScene extends Phaser.Scene {
   // Groupes de collision
   private buildingColliders: Phaser.Physics.Arcade.StaticGroup | null = null
   private treeColliders: Phaser.Physics.Arcade.StaticGroup | null = null
-  private carColliders: Phaser.Physics.Arcade.Group | null = null
   
   // Système de feux de circulation
   private trafficLights: TrafficLight[] = []
@@ -137,7 +136,6 @@ export class MainScene extends Phaser.Scene {
     // Initialiser les groupes de collision
     this.buildingColliders = this.physics.add.staticGroup()
     this.treeColliders = this.physics.add.staticGroup()
-    this.carColliders = this.physics.add.group()
     
     this.createTerrain()
     this.createDebugGrid() // Grille de debug (après terrain, avant tout le reste)
@@ -171,10 +169,7 @@ export class MainScene extends Phaser.Scene {
       this.physics.add.collider(this.player, this.treeColliders)
     }
     
-    // Collision avec les voitures
-    if (this.carColliders) {
-      this.physics.add.collider(this.player, this.carColliders)
-    }
+    // Les collisions avec les voitures sont gérées manuellement dans updateCars()
   }
 
   // ==================== TERRAIN ====================
@@ -561,34 +556,32 @@ export class MainScene extends Phaser.Scene {
   // ==================== VOITURES ====================
   private createCars(): void {
     const carColors = ['red', 'blue', 'green', 'yellow', 'white', 'black']
+    const carScale = 1.8 // Voitures plus grandes pour être visibles
     
     // Voitures sur les routes horizontales
+    // Voie 0 (haut de la route) : va vers la DROITE
+    // Voie 1 (bas de la route) : va vers la GAUCHE
     this.roadTilesH.forEach((roadY, roadIndex) => {
       for (let i = 0; i < 2; i++) {
         const color = Phaser.Math.RND.pick(carColors)
-        const laneY = (roadY + (i === 0 ? 0.3 : 1.3)) * this.tileSize + 32
+        // Positionner au centre de chaque voie
+        const laneY = (roadY + (i === 0 ? 0.5 : 1.5)) * this.tileSize
         const startX = Math.random() * this.mapWidth
-        const baseSpeed = 60 + Math.random() * 40
+        const baseSpeed = 80 + Math.random() * 40
+        
+        // Voie 0: vers la droite (rotation 0), Voie 1: vers la gauche (flip horizontal)
+        const goingRight = i === 0
         
         const sprite = this.add.image(startX, laneY, `car_${color}`)
-          .setScale(0.9)
+          .setScale(carScale)
           .setDepth(laneY + 5)
-          .setRotation(i === 0 ? 0 : Math.PI)
-        
-        // Ajouter le collider pour cette voiture
-        this.physics.add.existing(sprite)
-        const body = sprite.body as Phaser.Physics.Arcade.Body
-        body.setSize(40, 20) // Taille de collision de la voiture
-        body.setImmovable(true)
-        if (this.carColliders) {
-          this.carColliders.add(sprite)
-        }
+          .setFlipX(!goingRight) // Flip si va vers la gauche
         
         this.cars.push({
           sprite,
           direction: 'h',
-          speed: baseSpeed * (i === 0 ? 1 : -1),
-          baseSpeed: baseSpeed * (i === 0 ? 1 : -1),
+          speed: baseSpeed * (goingRight ? 1 : -1),
+          baseSpeed: baseSpeed * (goingRight ? 1 : -1),
           lane: i,
           roadIndex
         })
@@ -596,32 +589,29 @@ export class MainScene extends Phaser.Scene {
     })
     
     // Voitures sur les routes verticales
+    // Voie 0 (gauche de la route) : va vers le BAS
+    // Voie 1 (droite de la route) : va vers le HAUT
     this.roadTilesV.forEach((roadX, roadIndex) => {
       for (let i = 0; i < 2; i++) {
         const color = Phaser.Math.RND.pick(carColors)
-        const laneX = (roadX + (i === 0 ? 0.3 : 1.3)) * this.tileSize + 32
+        // Positionner au centre de chaque voie
+        const laneX = (roadX + (i === 0 ? 0.5 : 1.5)) * this.tileSize
         const startY = Math.random() * this.mapHeight
-        const baseSpeed = 60 + Math.random() * 40
+        const baseSpeed = 80 + Math.random() * 40
+        
+        // Voie 0: vers le bas (rotation 90°), Voie 1: vers le haut (rotation -90°)
+        const goingDown = i === 0
         
         const sprite = this.add.image(laneX, startY, `car_${color}`)
-          .setScale(0.9)
+          .setScale(carScale)
           .setDepth(startY + 5)
-          .setRotation(i === 0 ? -Math.PI / 2 : Math.PI / 2)
-        
-        // Ajouter le collider pour cette voiture
-        this.physics.add.existing(sprite)
-        const body = sprite.body as Phaser.Physics.Arcade.Body
-        body.setSize(20, 40) // Taille de collision de la voiture (rotated)
-        body.setImmovable(true)
-        if (this.carColliders) {
-          this.carColliders.add(sprite)
-        }
+          .setRotation(goingDown ? Math.PI / 2 : -Math.PI / 2)
         
         this.cars.push({
           sprite,
           direction: 'v',
-          speed: baseSpeed * (i === 0 ? 1 : -1),
-          baseSpeed: baseSpeed * (i === 0 ? 1 : -1),
+          speed: baseSpeed * (goingDown ? 1 : -1),
+          baseSpeed: baseSpeed * (goingDown ? 1 : -1),
           lane: i,
           roadIndex
         })
@@ -1323,25 +1313,100 @@ export class MainScene extends Phaser.Scene {
       // Vérifier si la voiture doit s'arrêter au feu rouge
       const mustStop = this.shouldCarStop(car)
       
+      // Vitesse actuelle (avec arrêt progressif aux feux)
+      let currentSpeed = car.baseSpeed
       if (mustStop) {
-        // Décélération progressive
-        car.speed = Phaser.Math.Linear(car.speed, 0, 0.1)
-      } else {
-        // Retour progressif à la vitesse normale
-        car.speed = Phaser.Math.Linear(car.speed, car.baseSpeed, 0.05)
+        currentSpeed = 0
       }
       
+      // Déplacer la voiture
       if (car.direction === 'h') {
-        car.sprite.x += car.speed * delta
-        if (car.sprite.x > this.mapWidth + 100) car.sprite.x = -100
-        if (car.sprite.x < -100) car.sprite.x = this.mapWidth + 100
+        car.sprite.x += currentSpeed * delta
+        // Téléportation aux bords de la carte
+        if (car.sprite.x > this.mapWidth + 60) car.sprite.x = -60
+        if (car.sprite.x < -60) car.sprite.x = this.mapWidth + 60
       } else {
-        car.sprite.y += car.speed * delta
-        if (car.sprite.y > this.mapHeight + 100) car.sprite.y = -100
-        if (car.sprite.y < -100) car.sprite.y = this.mapHeight + 100
+        car.sprite.y += currentSpeed * delta
+        // Téléportation aux bords de la carte
+        if (car.sprite.y > this.mapHeight + 60) car.sprite.y = -60
+        if (car.sprite.y < -60) car.sprite.y = this.mapHeight + 60
       }
+      
+      // Mettre à jour la profondeur pour le tri visuel
       car.sprite.setDepth(car.sprite.y + 5)
     })
+    
+    // Vérifier les collisions manuellement avec le joueur
+    this.checkCarCollisions()
+  }
+  
+  /**
+   * Vérifie les collisions entre le joueur et les voitures
+   */
+  private checkCarCollisions(): void {
+    const playerBounds = {
+      x: this.player.x - 10,
+      y: this.player.y - 40,
+      width: 20,
+      height: 40
+    }
+    
+    for (const car of this.cars) {
+      // Calculer les bounds de la voiture selon son orientation
+      let carWidth: number, carHeight: number
+      if (car.direction === 'h') {
+        carWidth = 50  // Voiture horizontale
+        carHeight = 25
+      } else {
+        carWidth = 25  // Voiture verticale
+        carHeight = 50
+      }
+      
+      const carBounds = {
+        x: car.sprite.x - carWidth / 2,
+        y: car.sprite.y - carHeight / 2,
+        width: carWidth,
+        height: carHeight
+      }
+      
+      // Vérifier l'intersection
+      if (this.boundsIntersect(playerBounds, carBounds)) {
+        // Repousser le joueur hors de la voiture
+        this.pushPlayerFromCar(car, carBounds)
+      }
+    }
+  }
+  
+  private boundsIntersect(a: {x: number, y: number, width: number, height: number}, 
+                          b: {x: number, y: number, width: number, height: number}): boolean {
+    return a.x < b.x + b.width &&
+           a.x + a.width > b.x &&
+           a.y < b.y + b.height &&
+           a.y + a.height > b.y
+  }
+  
+  private pushPlayerFromCar(car: Car, carBounds: {x: number, y: number, width: number, height: number}): void {
+    const pushForce = 8
+    
+    if (car.direction === 'h') {
+      // Voiture horizontale - pousser le joueur vers le haut ou le bas
+      const playerCenterY = this.player.y - 20
+      const carCenterY = carBounds.y + carBounds.height / 2
+      if (playerCenterY < carCenterY) {
+        this.player.y -= pushForce
+      } else {
+        this.player.y += pushForce
+      }
+    } else {
+      // Voiture verticale - pousser le joueur vers la gauche ou la droite
+      const playerCenterX = this.player.x
+      const carCenterX = carBounds.x + carBounds.width / 2
+      if (playerCenterX < carCenterX) {
+        this.player.x -= pushForce
+      } else {
+        this.player.x += pushForce
+      }
+    }
   }
 
   private updateNPCs(): void {
