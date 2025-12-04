@@ -1,6 +1,6 @@
 # 🌿 Village Numérique Résistant
 
-> Projet réalisé lors de **La Nuit de l'Info 2024** par l'équipe **Les Grosses Chaussures**
+> Projet réalisé lors de **La Nuit de l'Info 2025** par l'équipe **Les Grosses Chaussures**
 
 ## 🎯 Objectif pédagogique
 
@@ -107,7 +107,7 @@ npm run lint     # Linter le code
 
 ## 📜 Licence
 
-Projet open-source réalisé dans le cadre de La Nuit de l'Info 2024.
+Projet open-source réalisé dans le cadre de La Nuit de l'Info 2025.
 
 ---
 

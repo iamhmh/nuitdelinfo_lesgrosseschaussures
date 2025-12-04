@@ -2,9 +2,9 @@
  * Configuration Phaser 3 - Jeu isométrique style Zelda
  */
 import Phaser from 'phaser'
-import { BootScene } from './scenes/BootScene'
-import { MainScene } from './scenes/MainScene'
-import { UIScene } from './scenes/UIScene'
+import { BootScene } from './scenes/BootScene.ts'
+import { MainScene } from './scenes/MainScene.ts'
+import { UIScene } from './scenes/UIScene.ts'
 
 // Configuration du jeu Phaser
 export const createPhaserConfig = (parent: HTMLElement): Phaser.Types.Core.GameConfig => ({

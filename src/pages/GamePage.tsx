@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Game from '../game/Game'
+import Game from '../game/Game.tsx'
 
 export default function GamePage() {
   const navigate = useNavigate()
