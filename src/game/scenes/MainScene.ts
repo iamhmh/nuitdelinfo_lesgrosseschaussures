@@ -68,6 +68,9 @@ export class MainScene extends Phaser.Scene {
   
   // Debug
   private debugText!: Phaser.GameObjects.Text
+  private debugGridContainer!: Phaser.GameObjects.Container
+  private debugGridVisible: boolean = true
+  private toggleGridKey!: Phaser.Input.Keyboard.Key
 
   constructor() {
     super({ key: 'MainScene' })
@@ -75,6 +78,7 @@ export class MainScene extends Phaser.Scene {
 
   create(): void {
     this.createTerrain()
+    this.createDebugGrid() // Grille de debug (après terrain, avant tout le reste)
     this.createBuildings()
     this.createComputers()
     this.createCars()
@@ -681,6 +685,7 @@ export class MainScene extends Phaser.Scene {
       D: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     }
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E)
+    this.toggleGridKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.G)
   }
 
   private setupCamera(): void {
@@ -691,15 +696,99 @@ export class MainScene extends Phaser.Scene {
 
   private setupEvents(): void {
     this.interactKey.on('down', () => this.handleInteraction())
+    this.toggleGridKey.on('down', () => this.toggleDebugGrid())
+  }
+
+  private toggleDebugGrid(): void {
+    this.debugGridVisible = !this.debugGridVisible
+    this.debugGridContainer.setVisible(this.debugGridVisible)
   }
 
   private createDebugUI(): void {
-    this.debugText = this.add.text(10, 10, '', {
+    // Positionné en bas à gauche de l'écran
+    const screenHeight = this.cameras.main.height
+    this.debugText = this.add.text(10, screenHeight - 80, '', {
       fontSize: '14px',
       color: '#ffffff',
-      backgroundColor: '#000000aa',
-      padding: { x: 8, y: 4 }
+      backgroundColor: '#000000cc',
+      padding: { x: 10, y: 6 }
     }).setScrollFactor(0).setDepth(9999)
+  }
+
+  private createDebugGrid(): void {
+    this.debugGridContainer = this.add.container(0, 0)
+    
+    const tilesX = Math.ceil(this.mapWidth / this.tileSize)
+    const tilesY = Math.ceil(this.mapHeight / this.tileSize)
+    
+    const graphics = this.add.graphics()
+    graphics.lineStyle(1, 0x000000, 0.3)
+    
+    // Lignes verticales
+    for (let tx = 0; tx <= tilesX; tx++) {
+      const x = tx * this.tileSize
+      graphics.lineBetween(x, 0, x, this.mapHeight)
+    }
+    
+    // Lignes horizontales
+    for (let ty = 0; ty <= tilesY; ty++) {
+      const y = ty * this.tileSize
+      graphics.lineBetween(0, y, this.mapWidth, y)
+    }
+    
+    this.debugGridContainer.add(graphics)
+    
+    // Numéros de colonnes (en haut)
+    for (let tx = 0; tx < tilesX; tx++) {
+      const label = this.add.text(
+        tx * this.tileSize + this.tileSize / 2,
+        4,
+        `${tx}`,
+        { fontSize: '10px', color: '#000000', backgroundColor: '#ffffffaa' }
+      ).setOrigin(0.5, 0)
+      this.debugGridContainer.add(label)
+    }
+    
+    // Numéros de lignes (à gauche)
+    for (let ty = 0; ty < tilesY; ty++) {
+      const label = this.add.text(
+        4,
+        ty * this.tileSize + this.tileSize / 2,
+        `${ty}`,
+        { fontSize: '10px', color: '#000000', backgroundColor: '#ffffffaa' }
+      ).setOrigin(0, 0.5)
+      this.debugGridContainer.add(label)
+    }
+    
+    // Marquer les zones spéciales avec des couleurs
+    const zoneGraphics = this.add.graphics()
+    
+    // Routes horizontales (rouge transparent)
+    this.roadTilesH.forEach(roadY => {
+      zoneGraphics.fillStyle(0xff0000, 0.15)
+      zoneGraphics.fillRect(0, (roadY - 1) * this.tileSize, this.mapWidth, 4 * this.tileSize)
+    })
+    
+    // Routes verticales (rouge transparent)
+    this.roadTilesV.forEach(roadX => {
+      zoneGraphics.fillStyle(0xff0000, 0.15)
+      zoneGraphics.fillRect((roadX - 1) * this.tileSize, 0, 4 * this.tileSize, this.mapHeight)
+    })
+    
+    // Zone entreprises (bleu)
+    zoneGraphics.fillStyle(0x0066ff, 0.1)
+    zoneGraphics.fillRect(1 * this.tileSize, 1 * this.tileSize, 8 * this.tileSize, 5 * this.tileSize)
+    zoneGraphics.fillRect(22 * this.tileSize, 1 * this.tileSize, 8 * this.tileSize, 5 * this.tileSize)
+    
+    // Zone écoles (vert)
+    zoneGraphics.fillStyle(0x00ff00, 0.1)
+    zoneGraphics.fillRect(1 * this.tileSize, 25 * this.tileSize, 10 * this.tileSize, 4 * this.tileSize)
+    zoneGraphics.fillRect(12 * this.tileSize, 25 * this.tileSize, 8 * this.tileSize, 4 * this.tileSize)
+    zoneGraphics.fillRect(24 * this.tileSize, 25 * this.tileSize, 8 * this.tileSize, 4 * this.tileSize)
+    zoneGraphics.fillRect(33 * this.tileSize, 25 * this.tileSize, 6 * this.tileSize, 4 * this.tileSize)
+    
+    this.debugGridContainer.add(zoneGraphics)
+    this.debugGridContainer.setDepth(5000)
   }
 
   // ==================== UPDATE ====================
@@ -828,10 +917,11 @@ export class MainScene extends Phaser.Scene {
   private updateDebug(): void {
     const tx = Math.floor(this.player.x / this.tileSize)
     const ty = Math.floor(this.player.y / this.tileSize)
+    const onRoad = this.isOnRoad(this.player.x, this.player.y) ? '✅ Route' : '❌ Herbe'
     this.debugText.setText(
-      `Position: (${Math.round(this.player.x)}, ${Math.round(this.player.y)})\n` +
-      `Tile: (${tx}, ${ty})\n` +
-      `PC: ${this.inventory} | Recond: ${this.reconditionedCount} | Distrib: ${this.distributedCount}`
+      `📍 Position: (${Math.round(this.player.x)}, ${Math.round(this.player.y)}) | Tile: (${tx}, ${ty}) | ${onRoad}\n` +
+      `💻 PC: ${this.inventory} | 🔧 Recond: ${this.reconditionedCount} | 🎁 Distrib: ${this.distributedCount}\n` +
+      `[G] Toggle grille | Grille: ${this.debugGridVisible ? 'ON' : 'OFF'}`
     )
   }
 
