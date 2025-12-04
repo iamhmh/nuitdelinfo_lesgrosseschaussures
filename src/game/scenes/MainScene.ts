@@ -104,6 +104,11 @@ export class MainScene extends Phaser.Scene {
   private cars: Car[] = []
   private npcs: NPC[] = []
   
+  // Groupes de collision
+  private buildingColliders: Phaser.Physics.Arcade.StaticGroup | null = null
+  private treeColliders: Phaser.Physics.Arcade.StaticGroup | null = null
+  private carColliders: Phaser.Physics.Arcade.Group | null = null
+  
   // Système de feux de circulation
   private trafficLights: TrafficLight[] = []
   private trafficPhase: TrafficPhase = 'h_green'
@@ -129,6 +134,11 @@ export class MainScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Initialiser les groupes de collision
+    this.buildingColliders = this.physics.add.staticGroup()
+    this.treeColliders = this.physics.add.staticGroup()
+    this.carColliders = this.physics.add.group()
+    
     this.createTerrain()
     this.createDebugGrid() // Grille de debug (après terrain, avant tout le reste)
     this.createBuildings()
@@ -137,6 +147,7 @@ export class MainScene extends Phaser.Scene {
     this.createNPCs()
     this.createVegetation()
     this.createPlayer()
+    this.setupCollisions() // Configurer les collisions après création du joueur
     this.setupControls()
     this.setupCamera()
     this.createAnimations()
@@ -144,6 +155,26 @@ export class MainScene extends Phaser.Scene {
     this.createDebugUI()
     
     this.physics.world.setBounds(0, 0, this.mapWidth, this.mapHeight)
+  }
+  
+  /**
+   * Configure les collisions entre le joueur et les obstacles
+   */
+  private setupCollisions(): void {
+    // Collision avec les bâtiments
+    if (this.buildingColliders) {
+      this.physics.add.collider(this.player, this.buildingColliders)
+    }
+    
+    // Collision avec les arbres
+    if (this.treeColliders) {
+      this.physics.add.collider(this.player, this.treeColliders)
+    }
+    
+    // Collision avec les voitures
+    if (this.carColliders) {
+      this.physics.add.collider(this.player, this.carColliders)
+    }
   }
 
   // ==================== TERRAIN ====================
@@ -262,12 +293,13 @@ export class MainScene extends Phaser.Scene {
   /**
    * Calcule la zone occupée par un bâtiment (en pixels)
    * Le bâtiment a son origine en bas-centre, donc on calcule la zone autour de ce point
+   * withSpacing: true pour vérifier placement (avec marge), false pour collisions exactes
    */
-  private getBuildingBounds(x: number, y: number, type: Building['type'], scale: number = 1): OccupiedZone {
+  private getBuildingBounds(x: number, y: number, type: Building['type'], scale: number = 1, withSpacing: boolean = true): OccupiedZone {
     const size = BUILDING_SIZES[type]
     const w = size.width * scale
     const h = size.height * scale
-    const spacing = this.tileSize // Espacement minimum d'une tuile
+    const spacing = withSpacing ? this.tileSize : 0 // Espacement pour placement, pas pour debug/collision
     
     return {
       minX: x - w / 2 - spacing,
@@ -275,6 +307,13 @@ export class MainScene extends Phaser.Scene {
       minY: y - h - spacing,  // Le bâtiment s'étend vers le HAUT depuis y
       maxY: y + spacing
     }
+  }
+  
+  /**
+   * Retourne les bounds exactes du bâtiment (sans spacing) pour les collisions
+   */
+  private getExactBuildingBounds(x: number, y: number, type: Building['type'], scale: number = 1): OccupiedZone {
+    return this.getBuildingBounds(x, y, type, scale, false)
   }
   
   /**
@@ -432,6 +471,20 @@ export class MainScene extends Phaser.Scene {
       building.sprite = this.add.image(building.x, building.y, textureKey)
         .setOrigin(0.5, 1)
         .setDepth(building.y)
+      
+      // Créer un collider invisible pour ce bâtiment
+      if (this.buildingColliders) {
+        const bounds = this.getExactBuildingBounds(building.x, building.y, building.type)
+        const collider = this.add.rectangle(
+          bounds.minX + (bounds.maxX - bounds.minX) / 2,
+          bounds.minY + (bounds.maxY - bounds.minY) / 2,
+          bounds.maxX - bounds.minX,
+          bounds.maxY - bounds.minY
+        )
+        this.physics.add.existing(collider, true) // true = static
+        this.buildingColliders.add(collider)
+        collider.setVisible(false)
+      }
     })
     
     // Debug: afficher les zones occupées
@@ -442,7 +495,9 @@ export class MainScene extends Phaser.Scene {
     const g = this.add.graphics()
     g.lineStyle(2, 0xff00ff, 0.5)
     
-    this.occupiedZones.forEach(zone => {
+    // Afficher les zones exactes des bâtiments (sans spacing)
+    this.buildings.forEach(building => {
+      const zone = this.getExactBuildingBounds(building.x, building.y, building.type)
       g.strokeRect(
         zone.minX,
         zone.minY,
@@ -516,9 +571,18 @@ export class MainScene extends Phaser.Scene {
         const baseSpeed = 60 + Math.random() * 40
         
         const sprite = this.add.image(startX, laneY, `car_${color}`)
-          .setScale(0.9) // Voitures plus grandes
+          .setScale(0.9)
           .setDepth(laneY + 5)
-          .setRotation(i === 0 ? 0 : Math.PI) // Direction opposée par voie
+          .setRotation(i === 0 ? 0 : Math.PI)
+        
+        // Ajouter le collider pour cette voiture
+        this.physics.add.existing(sprite)
+        const body = sprite.body as Phaser.Physics.Arcade.Body
+        body.setSize(40, 20) // Taille de collision de la voiture
+        body.setImmovable(true)
+        if (this.carColliders) {
+          this.carColliders.add(sprite)
+        }
         
         this.cars.push({
           sprite,
@@ -543,6 +607,15 @@ export class MainScene extends Phaser.Scene {
           .setScale(0.9)
           .setDepth(startY + 5)
           .setRotation(i === 0 ? -Math.PI / 2 : Math.PI / 2)
+        
+        // Ajouter le collider pour cette voiture
+        this.physics.add.existing(sprite)
+        const body = sprite.body as Phaser.Physics.Arcade.Body
+        body.setSize(20, 40) // Taille de collision de la voiture (rotated)
+        body.setImmovable(true)
+        if (this.carColliders) {
+          this.carColliders.add(sprite)
+        }
         
         this.cars.push({
           sprite,
@@ -685,10 +758,27 @@ export class MainScene extends Phaser.Scene {
       const px = pos.tx * this.tileSize + 32
       const py = pos.ty * this.tileSize + 64
       const treeType = Math.random() > 0.4 ? 'tree' : 'tree_pine'
+      const treeScale = 0.9 + Math.random() * 0.3
+      
       this.add.image(px, py, treeType)
         .setOrigin(0.5, 1)
         .setDepth(py)
-        .setScale(0.9 + Math.random() * 0.3)
+        .setScale(treeScale)
+      
+      // Ajouter un collider pour le tronc de l'arbre
+      if (this.treeColliders) {
+        const trunkWidth = 20
+        const trunkHeight = 30
+        const collider = this.add.rectangle(
+          px,
+          py - trunkHeight / 2,
+          trunkWidth,
+          trunkHeight
+        )
+        this.physics.add.existing(collider, true) // true = static
+        this.treeColliders.add(collider)
+        collider.setVisible(false)
+      }
     })
     
     // Buissons - sur l'herbe uniquement
