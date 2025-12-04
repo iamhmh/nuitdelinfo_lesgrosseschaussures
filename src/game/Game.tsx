@@ -1,6 +1,5 @@
 /**
  * Composant React qui monte l'instance Phaser
- * Gère le cycle de vie du jeu dans le contexte React
  */
 import { useEffect, useRef } from 'react'
 import Phaser from 'phaser'
@@ -11,13 +10,11 @@ export default function Game() {
   const gameRef = useRef<Phaser.Game | null>(null)
 
   useEffect(() => {
-    // Créer le jeu Phaser au montage du composant
     if (gameContainerRef.current && !gameRef.current) {
       const config = createPhaserConfig(gameContainerRef.current)
       gameRef.current = new Phaser.Game(config)
     }
 
-    // Nettoyer le jeu au démontage du composant
     return () => {
       if (gameRef.current) {
         gameRef.current.destroy(true)
@@ -29,7 +26,7 @@ export default function Game() {
   return (
     <div
       ref={gameContainerRef}
-      className="w-full h-full flex items-center justify-center bg-slate-900"
+      className="w-full h-full flex items-center justify-center"
       id="phaser-game"
     />
   )

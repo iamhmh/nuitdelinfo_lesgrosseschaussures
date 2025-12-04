@@ -1,31 +1,32 @@
 /**
- * Configuration Phaser 3
- * Définit les paramètres du jeu isométrique
+ * Configuration Phaser 3 - Jeu isométrique style Zelda
  */
 import Phaser from 'phaser'
-import { MainScene } from './MainScene.ts'
+import { BootScene } from './scenes/BootScene'
+import { MainScene } from './scenes/MainScene'
+import { UIScene } from './scenes/UIScene'
 
 // Configuration du jeu Phaser
 export const createPhaserConfig = (parent: HTMLElement): Phaser.Types.Core.GameConfig => ({
-  type: Phaser.AUTO, // WebGL automatique avec fallback Canvas
+  type: Phaser.WEBGL,
   parent: parent,
-  width: 800,
-  height: 600,
-  backgroundColor: '#1a1a2e',
+  width: 1280,
+  height: 720,
+  backgroundColor: '#0f172a',
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { x: 0, y: 0 }, // Pas de gravité pour un jeu top-down/isométrique
-      debug: false, // Mettre à true pour voir les hitboxes
+      gravity: { x: 0, y: 0 },
+      debug: false,
     },
   },
-  scene: [MainScene],
+  scene: [BootScene, MainScene, UIScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   render: {
-    pixelArt: true, // Pour un rendu pixel art net
+    pixelArt: true,
     antialias: false,
   },
 })
