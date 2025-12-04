@@ -33,8 +33,23 @@ interface Car {
   sprite: Phaser.GameObjects.Image
   direction: 'h' | 'v'
   speed: number
+  baseSpeed: number // Vitesse de base (avant arrêt au feu)
   lane: number
+  roadIndex: number // Index de la route sur laquelle se trouve la voiture
 }
+
+// Feu tricolore à une intersection
+interface TrafficLight {
+  x: number
+  y: number
+  roadX: number // Colonne de la route V
+  roadY: number // Ligne de la route H
+  spriteH: Phaser.GameObjects.Image // Feu pour la route H
+  spriteV: Phaser.GameObjects.Image // Feu pour la route V
+}
+
+// État global des feux (synchronisés)
+type TrafficPhase = 'h_green' | 'h_yellow' | 'v_green' | 'v_yellow'
 
 // Dimensions des bâtiments (en pixels) - correspondent aux textures générées dans BootScene
 interface BuildingSize {
@@ -86,6 +101,13 @@ export class MainScene extends Phaser.Scene {
   private computers: CollectibleComputer[] = []
   private cars: Car[] = []
   private npcs: NPC[] = []
+  
+  // Système de feux de circulation
+  private trafficLights: TrafficLight[] = []
+  private trafficPhase: TrafficPhase = 'h_green'
+  private trafficTimer: number = 0
+  private readonly TRAFFIC_GREEN_DURATION = 5000 // 5 secondes de vert
+  private readonly TRAFFIC_YELLOW_DURATION = 1500 // 1.5 secondes d'orange
   
   private collectedCount: number = 0
   private reconditionedCount: number = 0
@@ -196,19 +218,40 @@ export class MainScene extends Phaser.Scene {
         this.add.image((roadX + 2) * this.tileSize + 32, roadY * this.tileSize + 32, 'crosswalk_v').setDepth(2)
         this.add.image((roadX + 2) * this.tileSize + 32, (roadY + 1) * this.tileSize + 32, 'crosswalk_v').setDepth(2)
         
-        // Feux tricolores sur les trottoirs des intersections
-        const trafficLightPositions = [
-          { x: roadX - 1, y: roadY - 1 },
-          { x: roadX + 2, y: roadY - 1 },
-          { x: roadX - 1, y: roadY + 2 },
-          { x: roadX + 2, y: roadY + 2 },
-        ]
-        trafficLightPositions.forEach(pos => {
-          const px = pos.x * this.tileSize + 32
-          const py = pos.y * this.tileSize + 32
-          this.add.image(px, py, 'traffic_light').setOrigin(0.5, 1).setDepth(py + 50)
-        })
+        // Créer les feux tricolores dynamiques pour cette intersection
+        this.createTrafficLightsForIntersection(roadX, roadY)
       })
+    })
+  }
+
+  /**
+   * Crée les feux de circulation pour une intersection donnée
+   */
+  private createTrafficLightsForIntersection(roadX: number, roadY: number): void {
+    // Positions des feux sur les coins de l'intersection
+    // On place un feu pour les voitures H et un pour les voitures V
+    
+    // Feu pour route horizontale (en haut-gauche de l'intersection)
+    const hLightX = (roadX - 1) * this.tileSize + 32
+    const hLightY = (roadY - 1) * this.tileSize + 32
+    const spriteH = this.add.image(hLightX, hLightY, 'traffic_light_green')
+      .setOrigin(0.5, 1)
+      .setDepth(hLightY + 50)
+    
+    // Feu pour route verticale (en bas-droite de l'intersection)
+    const vLightX = (roadX + 2) * this.tileSize + 32
+    const vLightY = (roadY + 2) * this.tileSize + 32
+    const spriteV = this.add.image(vLightX, vLightY, 'traffic_light_red')
+      .setOrigin(0.5, 1)
+      .setDepth(vLightY + 50)
+    
+    this.trafficLights.push({
+      x: roadX * this.tileSize,
+      y: roadY * this.tileSize,
+      roadX,
+      roadY,
+      spriteH,
+      spriteV
     })
   }
 
@@ -455,11 +498,12 @@ export class MainScene extends Phaser.Scene {
     const carColors = ['red', 'blue', 'green', 'yellow', 'white', 'black']
     
     // Voitures sur les routes horizontales
-    this.roadTilesH.forEach((roadY) => {
+    this.roadTilesH.forEach((roadY, roadIndex) => {
       for (let i = 0; i < 2; i++) {
         const color = Phaser.Math.RND.pick(carColors)
         const laneY = (roadY + (i === 0 ? 0.3 : 1.3)) * this.tileSize + 32
         const startX = Math.random() * this.mapWidth
+        const baseSpeed = 60 + Math.random() * 40
         
         const sprite = this.add.image(startX, laneY, `car_${color}`)
           .setScale(0.9) // Voitures plus grandes
@@ -469,18 +513,21 @@ export class MainScene extends Phaser.Scene {
         this.cars.push({
           sprite,
           direction: 'h',
-          speed: (60 + Math.random() * 40) * (i === 0 ? 1 : -1),
-          lane: i
+          speed: baseSpeed * (i === 0 ? 1 : -1),
+          baseSpeed: baseSpeed * (i === 0 ? 1 : -1),
+          lane: i,
+          roadIndex
         })
       }
     })
     
     // Voitures sur les routes verticales
-    this.roadTilesV.forEach((roadX) => {
+    this.roadTilesV.forEach((roadX, roadIndex) => {
       for (let i = 0; i < 2; i++) {
         const color = Phaser.Math.RND.pick(carColors)
         const laneX = (roadX + (i === 0 ? 0.3 : 1.3)) * this.tileSize + 32
         const startY = Math.random() * this.mapHeight
+        const baseSpeed = 60 + Math.random() * 40
         
         const sprite = this.add.image(laneX, startY, `car_${color}`)
           .setScale(0.9)
@@ -490,8 +537,10 @@ export class MainScene extends Phaser.Scene {
         this.cars.push({
           sprite,
           direction: 'v',
-          speed: (60 + Math.random() * 40) * (i === 0 ? 1 : -1),
-          lane: i
+          speed: baseSpeed * (i === 0 ? 1 : -1),
+          baseSpeed: baseSpeed * (i === 0 ? 1 : -1),
+          lane: i,
+          roadIndex
         })
       }
     })
@@ -959,13 +1008,138 @@ export class MainScene extends Phaser.Scene {
   }
 
   // ==================== UPDATE ====================
-  update(): void {
+  update(_time: number, delta: number): void {
     this.handleMovement()
     this.checkProximity()
     this.updateDepth()
+    this.updateTrafficLights(delta)
     this.updateCars()
     this.updateNPCs()
     this.updateDebug()
+  }
+
+  /**
+   * Met à jour le cycle des feux tricolores
+   */
+  private updateTrafficLights(delta: number): void {
+    this.trafficTimer += delta
+    
+    // Déterminer la durée selon la phase
+    const currentDuration = (this.trafficPhase === 'h_yellow' || this.trafficPhase === 'v_yellow') 
+      ? this.TRAFFIC_YELLOW_DURATION 
+      : this.TRAFFIC_GREEN_DURATION
+    
+    if (this.trafficTimer >= currentDuration) {
+      this.trafficTimer = 0
+      
+      // Passer à la phase suivante
+      switch (this.trafficPhase) {
+        case 'h_green':
+          this.trafficPhase = 'h_yellow'
+          break
+        case 'h_yellow':
+          this.trafficPhase = 'v_green'
+          break
+        case 'v_green':
+          this.trafficPhase = 'v_yellow'
+          break
+        case 'v_yellow':
+          this.trafficPhase = 'h_green'
+          break
+      }
+      
+      // Mettre à jour les sprites des feux
+      this.updateTrafficLightSprites()
+    }
+  }
+
+  /**
+   * Met à jour les textures des feux selon la phase actuelle
+   */
+  private updateTrafficLightSprites(): void {
+    this.trafficLights.forEach(light => {
+      switch (this.trafficPhase) {
+        case 'h_green':
+          light.spriteH.setTexture('traffic_light_green')
+          light.spriteV.setTexture('traffic_light_red')
+          break
+        case 'h_yellow':
+          light.spriteH.setTexture('traffic_light_orange')
+          light.spriteV.setTexture('traffic_light_red')
+          break
+        case 'v_green':
+          light.spriteH.setTexture('traffic_light_red')
+          light.spriteV.setTexture('traffic_light_green')
+          break
+        case 'v_yellow':
+          light.spriteH.setTexture('traffic_light_red')
+          light.spriteV.setTexture('traffic_light_orange')
+          break
+      }
+    })
+  }
+
+  /**
+   * Vérifie si une voiture doit s'arrêter au prochain feu rouge
+   */
+  private shouldCarStop(car: Car): boolean {
+    const stopDistance = 80 // Distance d'arrêt avant le feu
+    
+    // Vérifier chaque intersection
+    for (const light of this.trafficLights) {
+      const intersectionMinX = (light.roadX - 1) * this.tileSize
+      const intersectionMaxX = (light.roadX + 3) * this.tileSize
+      const intersectionMinY = (light.roadY - 1) * this.tileSize
+      const intersectionMaxY = (light.roadY + 3) * this.tileSize
+      
+      if (car.direction === 'h') {
+        // Voiture horizontale - vérifier si on approche une intersection avec feu rouge
+        const isHorizontalRed = this.trafficPhase === 'v_green' || this.trafficPhase === 'v_yellow'
+        if (!isHorizontalRed) continue
+        
+        // Vérifier si la voiture est sur la même ligne que l'intersection
+        if (car.sprite.y < intersectionMinY || car.sprite.y > intersectionMaxY) continue
+        
+        // Voiture allant vers la droite
+        if (car.baseSpeed > 0) {
+          const distanceToIntersection = intersectionMinX - car.sprite.x
+          if (distanceToIntersection > 0 && distanceToIntersection < stopDistance) {
+            return true
+          }
+        }
+        // Voiture allant vers la gauche
+        else {
+          const distanceToIntersection = car.sprite.x - intersectionMaxX
+          if (distanceToIntersection > 0 && distanceToIntersection < stopDistance) {
+            return true
+          }
+        }
+      } else {
+        // Voiture verticale - vérifier si on approche une intersection avec feu rouge
+        const isVerticalRed = this.trafficPhase === 'h_green' || this.trafficPhase === 'h_yellow'
+        if (!isVerticalRed) continue
+        
+        // Vérifier si la voiture est sur la même colonne que l'intersection
+        if (car.sprite.x < intersectionMinX || car.sprite.x > intersectionMaxX) continue
+        
+        // Voiture allant vers le bas
+        if (car.baseSpeed > 0) {
+          const distanceToIntersection = intersectionMinY - car.sprite.y
+          if (distanceToIntersection > 0 && distanceToIntersection < stopDistance) {
+            return true
+          }
+        }
+        // Voiture allant vers le haut
+        else {
+          const distanceToIntersection = car.sprite.y - intersectionMaxY
+          if (distanceToIntersection > 0 && distanceToIntersection < stopDistance) {
+            return true
+          }
+        }
+      }
+    }
+    
+    return false
   }
 
   private handleMovement(): void {
@@ -1046,6 +1220,17 @@ export class MainScene extends Phaser.Scene {
     const delta = this.game.loop.delta / 1000
     
     this.cars.forEach(car => {
+      // Vérifier si la voiture doit s'arrêter au feu rouge
+      const mustStop = this.shouldCarStop(car)
+      
+      if (mustStop) {
+        // Décélération progressive
+        car.speed = Phaser.Math.Linear(car.speed, 0, 0.1)
+      } else {
+        // Retour progressif à la vitesse normale
+        car.speed = Phaser.Math.Linear(car.speed, car.baseSpeed, 0.05)
+      }
+      
       if (car.direction === 'h') {
         car.sprite.x += car.speed * delta
         if (car.sprite.x > this.mapWidth + 100) car.sprite.x = -100

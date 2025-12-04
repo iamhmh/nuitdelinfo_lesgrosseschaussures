@@ -95,7 +95,8 @@ export class BootScene extends Phaser.Scene {
     }
     g.generateTexture('road', 64, 64)
     
-    // Route avec ligne horizontale
+    // Route avec ligne horizontale (centrée - route de 2 tiles = 128px, centre à 64px)
+    // Cette tile est la PREMIERE des 2, donc la ligne doit être en BAS
     g.clear()
     g.fillStyle(0x3a3a3a)
     g.fillRect(0, 0, 64, 64)
@@ -103,11 +104,14 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(Phaser.Math.RND.pick([0x333333, 0x404040]))
       g.fillRect(Math.random() * 62, Math.random() * 62, 2, 2)
     }
-    g.fillStyle(0xf4c430)
-    g.fillRect(0, 30, 64, 4)
+    // Ligne discontinue en bas de la tile (sera au centre de la route 2 tiles)
+    g.fillStyle(0xffffff)
+    for (let i = 0; i < 4; i++) {
+      g.fillRect(i * 16 + 4, 60, 10, 4)
+    }
     g.generateTexture('road_h', 64, 64)
     
-    // Route avec ligne verticale
+    // Route avec ligne verticale (centrée)
     g.clear()
     g.fillStyle(0x3a3a3a)
     g.fillRect(0, 0, 64, 64)
@@ -115,8 +119,11 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(Phaser.Math.RND.pick([0x333333, 0x404040]))
       g.fillRect(Math.random() * 62, Math.random() * 62, 2, 2)
     }
-    g.fillStyle(0xf4c430)
-    g.fillRect(30, 0, 4, 64)
+    // Ligne discontinue à droite de la tile (sera au centre de la route 2 tiles)
+    g.fillStyle(0xffffff)
+    for (let i = 0; i < 4; i++) {
+      g.fillRect(60, i * 16 + 4, 4, 10)
+    }
     g.generateTexture('road_v', 64, 64)
     
     // Intersection
@@ -535,52 +542,140 @@ export class BootScene extends Phaser.Scene {
   // ==================== VÉHICULES ====================
   private generateVehicles(g: Phaser.GameObjects.Graphics): void {
     const carColors = [
-      { name: 'red', color: 0xc0392b },
-      { name: 'blue', color: 0x2980b9 },
-      { name: 'green', color: 0x27ae60 },
-      { name: 'yellow', color: 0xf1c40f },
-      { name: 'white', color: 0xecf0f1 },
-      { name: 'black', color: 0x2c3e50 },
+      { name: 'red', color: 0xc0392b, dark: 0x922b21 },
+      { name: 'blue', color: 0x2980b9, dark: 0x1f618d },
+      { name: 'green', color: 0x27ae60, dark: 0x1e8449 },
+      { name: 'yellow', color: 0xf1c40f, dark: 0xb7950b },
+      { name: 'white', color: 0xecf0f1, dark: 0xbdc3c7 },
+      { name: 'black', color: 0x2c3e50, dark: 0x1a252f },
     ]
     
     carColors.forEach(car => {
       g.clear()
-      // Ombre
+      
+      // Ombre au sol
       g.fillStyle(0x000000)
-      g.setAlpha(0.3)
-      g.fillEllipse(32, 52, 54, 20)
+      g.setAlpha(0.25)
+      g.fillEllipse(40, 58, 60, 16)
       g.setAlpha(1)
-      // Corps principal
-      g.fillStyle(car.color)
-      g.fillRoundedRect(4, 14, 56, 36, 6)
-      // Toit/vitres
-      g.fillStyle(0x2c3e50)
-      g.fillRoundedRect(14, 20, 36, 24, 4)
-      // Vitres
-      g.fillStyle(0x87ceeb)
-      g.fillRect(16, 22, 32, 8)
-      g.fillRect(16, 32, 32, 8)
-      // Phares avant
-      g.fillStyle(0xf5f5dc)
-      g.fillCircle(10, 20, 4)
-      g.fillCircle(10, 44, 4)
-      // Feux arrière
-      g.fillStyle(0xff0000)
-      g.fillRect(54, 18, 5, 5)
-      g.fillRect(54, 41, 5, 5)
-      // Roues
+      
+      // === VUE 3/4 ARRIÈRE - Voiture avec perspective ===
+      
+      // Partie basse du corps (dessous)
       g.fillStyle(0x1a1a1a)
-      g.fillCircle(18, 10, 7)
-      g.fillCircle(46, 10, 7)
-      g.fillCircle(18, 54, 7)
-      g.fillCircle(46, 54, 7)
-      // Jantes
+      g.fillRect(10, 42, 60, 8)
+      
+      // Corps principal de la voiture
+      g.fillStyle(car.color)
+      g.fillRoundedRect(8, 22, 64, 28, 4)
+      
+      // Côté gauche (ombre pour volume)
+      g.fillStyle(car.dark)
+      g.fillRect(8, 26, 4, 20)
+      
+      // Capot avant (partie haute inclinée)
+      g.fillStyle(car.color)
+      g.beginPath()
+      g.moveTo(8, 30)
+      g.lineTo(8, 22)
+      g.lineTo(20, 18)
+      g.lineTo(20, 30)
+      g.closePath()
+      g.fillPath()
+      
+      // Coffre arrière
+      g.fillStyle(car.dark)
+      g.beginPath()
+      g.moveTo(72, 22)
+      g.lineTo(72, 50)
+      g.lineTo(68, 50)
+      g.lineTo(62, 30)
+      g.lineTo(62, 22)
+      g.closePath()
+      g.fillPath()
+      
+      // Toit/cabine (volume 3D)
+      g.fillStyle(0x2c3e50)
+      g.fillRoundedRect(20, 12, 40, 22, 3)
+      
+      // Ombre du toit
+      g.fillStyle(0x1a252f)
+      g.fillRect(20, 30, 40, 4)
+      
+      // Pare-brise avant (incliné)
+      g.fillStyle(0x85c1e9)
+      g.beginPath()
+      g.moveTo(22, 14)
+      g.lineTo(30, 14)
+      g.lineTo(26, 28)
+      g.lineTo(22, 28)
+      g.closePath()
+      g.fillPath()
+      
+      // Vitre latérale
+      g.fillStyle(0x5dade2)
+      g.fillRect(32, 14, 18, 14)
+      
+      // Montant central
+      g.fillStyle(0x2c3e50)
+      g.fillRect(42, 14, 3, 14)
+      
+      // Vitre arrière
+      g.fillStyle(0x85c1e9)
+      g.beginPath()
+      g.moveTo(52, 14)
+      g.lineTo(58, 14)
+      g.lineTo(58, 28)
+      g.lineTo(54, 28)
+      g.closePath()
+      g.fillPath()
+      
+      // Reflet sur le toit
+      g.fillStyle(0xffffff)
+      g.setAlpha(0.15)
+      g.fillRect(25, 13, 30, 3)
+      g.setAlpha(1)
+      
+      // Phares avant
+      g.fillStyle(0xfffacd)
+      g.fillCircle(12, 28, 4)
+      g.fillCircle(12, 44, 4)
+      // Lueur phares
+      g.fillStyle(0xffffff)
+      g.setAlpha(0.5)
+      g.fillCircle(12, 28, 2)
+      g.fillCircle(12, 44, 2)
+      g.setAlpha(1)
+      
+      // Feux arrière
+      g.fillStyle(0xe74c3c)
+      g.fillRect(68, 26, 4, 6)
+      g.fillRect(68, 42, 4, 6)
+      
+      // Roues (vue latérale avec perspective)
+      // Roue avant gauche
+      g.fillStyle(0x1a1a1a)
+      g.fillEllipse(18, 50, 14, 10)
+      g.fillStyle(0x555555)
+      g.fillEllipse(18, 50, 8, 6)
       g.fillStyle(0x888888)
-      g.fillCircle(18, 10, 3)
-      g.fillCircle(46, 10, 3)
-      g.fillCircle(18, 54, 3)
-      g.fillCircle(46, 54, 3)
-      g.generateTexture(`car_${car.name}`, 64, 64)
+      g.fillEllipse(18, 50, 4, 3)
+      
+      // Roue arrière gauche
+      g.fillStyle(0x1a1a1a)
+      g.fillEllipse(58, 50, 14, 10)
+      g.fillStyle(0x555555)
+      g.fillEllipse(58, 50, 8, 6)
+      g.fillStyle(0x888888)
+      g.fillEllipse(58, 50, 4, 3)
+      
+      // Reflet carrosserie
+      g.fillStyle(0xffffff)
+      g.setAlpha(0.1)
+      g.fillRect(12, 24, 50, 2)
+      g.setAlpha(1)
+      
+      g.generateTexture(`car_${car.name}`, 80, 64)
     })
   }
 
@@ -701,7 +796,64 @@ export class BootScene extends Phaser.Scene {
     g.setAlpha(1)
     g.generateTexture('lamppost', 21, 95)
     
-    // Feu tricolore
+    // Feu tricolore - ROUGE
+    g.clear()
+    g.fillStyle(0x2a2a2a)
+    g.fillRect(10, 40, 6, 55)
+    g.fillStyle(0x1a1a1a)
+    g.fillRoundedRect(5, 6, 16, 38, 3)
+    // Rouge allumé
+    g.fillStyle(0xff0000)
+    g.fillCircle(13, 14, 5)
+    g.fillStyle(0xff4444)
+    g.fillCircle(12, 13, 2)
+    // Orange éteint
+    g.fillStyle(0x3a3a00)
+    g.fillCircle(13, 26, 5)
+    // Vert éteint
+    g.fillStyle(0x003a00)
+    g.fillCircle(13, 38, 5)
+    g.generateTexture('traffic_light_red', 26, 95)
+    
+    // Feu tricolore - ORANGE
+    g.clear()
+    g.fillStyle(0x2a2a2a)
+    g.fillRect(10, 40, 6, 55)
+    g.fillStyle(0x1a1a1a)
+    g.fillRoundedRect(5, 6, 16, 38, 3)
+    // Rouge éteint
+    g.fillStyle(0x3a0000)
+    g.fillCircle(13, 14, 5)
+    // Orange allumé
+    g.fillStyle(0xffa500)
+    g.fillCircle(13, 26, 5)
+    g.fillStyle(0xffcc44)
+    g.fillCircle(12, 25, 2)
+    // Vert éteint
+    g.fillStyle(0x003a00)
+    g.fillCircle(13, 38, 5)
+    g.generateTexture('traffic_light_orange', 26, 95)
+    
+    // Feu tricolore - VERT
+    g.clear()
+    g.fillStyle(0x2a2a2a)
+    g.fillRect(10, 40, 6, 55)
+    g.fillStyle(0x1a1a1a)
+    g.fillRoundedRect(5, 6, 16, 38, 3)
+    // Rouge éteint
+    g.fillStyle(0x3a0000)
+    g.fillCircle(13, 14, 5)
+    // Orange éteint
+    g.fillStyle(0x3a3a00)
+    g.fillCircle(13, 26, 5)
+    // Vert allumé
+    g.fillStyle(0x00ff00)
+    g.fillCircle(13, 38, 5)
+    g.fillStyle(0x44ff44)
+    g.fillCircle(12, 37, 2)
+    g.generateTexture('traffic_light_green', 26, 95)
+    
+    // Garder l'ancien pour compatibilité
     g.clear()
     g.fillStyle(0x2a2a2a)
     g.fillRect(10, 40, 6, 55)
