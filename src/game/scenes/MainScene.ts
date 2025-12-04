@@ -339,12 +339,20 @@ export class MainScene extends Phaser.Scene {
   }
   
   /**
-   * Place un bâtiment et enregistre sa zone
+   * Place un bâtiment aligné sur les tiles et enregistre sa zone
+   * tx, ty: coordonnées de la tile du coin bas-gauche du bâtiment
+   * Le bâtiment occupera les tiles de (tx, ty - heightInTiles + 1) à (tx + widthInTiles - 1, ty)
    */
   private placeBuilding(tx: number, ty: number, type: Building['type'], name: string, scale: number = 1): boolean {
-    // Position en pixels (bas-centre du bâtiment)
-    const x = tx * this.tileSize + this.tileSize / 2
-    const y = ty * this.tileSize + this.tileSize
+    const size = BUILDING_SIZES[type]
+    const widthInTiles = size.width / this.tileSize
+    
+    // Position en pixels - alignée sur les tiles
+    // Le sprite utilise setOrigin(0.5, 1) donc:
+    // x = centre horizontal du bâtiment (milieu des tiles occupées)
+    // y = bas du bâtiment (bord inférieur de la tile ty)
+    const x = tx * this.tileSize + (widthInTiles * this.tileSize) / 2
+    const y = (ty + 1) * this.tileSize  // Bas du bâtiment = bord inférieur de la tile ty
     
     if (!this.canPlaceBuilding(x, y, type, scale)) {
       console.warn(`⚠️ Impossible de placer "${name}" à tile (${tx}, ${ty})`)
