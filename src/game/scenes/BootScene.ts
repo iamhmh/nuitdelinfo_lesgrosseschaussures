@@ -63,16 +63,20 @@ export class BootScene extends Phaser.Scene {
     progressBox.fillStyle(0x1e293b, 0.8)
     progressBox.fillRect(width / 2 - 160, height / 2 - 25, 320, 50)
 
-    const loadingText = this.add.text(width / 2, height / 2 - 50, 'Chargement du Village...', {
-      fontSize: '20px',
-      color: '#22c55e',
-    }).setOrigin(0.5)
+  // Écran noir façon BIOS
+  this.cameras.main.setBackgroundColor("#0b0b0b");
 
-    this.load.on('progress', (value: number) => {
-      progressBar.clear()
-      progressBar.fillStyle(0x22c55e, 1)
-      progressBar.fillRect(width / 2 - 150, height / 2 - 15, 300 * value, 30)
-    })
+  // HEADER style GRUB
+  const header = this.add.text(
+    width / 2,
+    height * 0.18,
+    "GRUB v2.06 — Recondi_Tech Bootloader",
+    {
+      fontSize: "18px",
+      color: "#00FF41",
+      fontFamily: "monospace"
+    }
+  ).setOrigin(0.5);
 
     this.load.on('complete', () => {
       progressBar.destroy()

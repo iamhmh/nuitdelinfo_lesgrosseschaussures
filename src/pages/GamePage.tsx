@@ -8,12 +8,24 @@ import Game from '../game/Game.tsx'
 export default function GamePage() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(true)
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
     // Simuler le temps de chargement du jeu
     const timer = setTimeout(() => setIsLoading(false), 500)
     return () => clearTimeout(timer)
   }, [])
+
+  useEffect(() => {
+  if (isLoading) {
+    const interval = setInterval(() => {
+      setLoadingProgress((p) => Math.min(p + 1, 100)); // Lent et smooth
+    }, 150); // Plus lent que 120ms
+    return () => clearInterval(interval);
+  }
+}, [isLoading]);
+
+
 
   return (
     <div className="w-full h-screen flex flex-col bg-slate-900 overflow-hidden">
@@ -44,20 +56,46 @@ export default function GamePage() {
 
       {/* Zone de jeu */}
       <main className="flex-1 relative">
-        {/* Écran de chargement */}
-        {isLoading && (
-          <div className="absolute inset-0 z-30 bg-slate-900 flex flex-col items-center justify-center">
-            <div className="text-6xl mb-6 animate-bounce">🌿</div>
-            <div className="text-2xl font-bold gradient-text mb-4">
-              Chargement du Village...
-            </div>
-            <div className="w-64 h-2 bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-green-500 to-emerald-500 animate-pulse rounded-full" 
-                   style={{ width: '60%' }} />
-            </div>
-          </div>
-        )}
+  {/* Écran de chargement BIOS / GRUB */}
+  {isLoading && (
+    <div className="absolute inset-0 z-30 bg-black flex flex-col items-center justify-center px-10 font-mono text-green-400">
+      
+      {/* Header style GRUB */}
+      <div className="text-green-500 mb-10 text-lg">
+        GRUB v2.06 — Recondi_Tech Bootloader
+      </div>
 
+      {/* Logs du boot */}
+      <div className="space-y-3 text-[20px] leading-relaxed text-center">
+        <div>[ OK ] Initializing hardware...</div>
+        <div>[ OK ] Loading Linux kernel v6.5...</div>
+        <div>[ OK ] Mounting NIRD filesystem...</div>
+        <div>[ OK ] Detecting recycled hardware...</div>
+        <div>[ OK ] Recondition modules loaded.</div>
+        <div>[ .. ] Loading assets...</div>
+      </div>
+
+      {/* Progression façon BIOS */}
+      <div className="mt-10 flex items-center gap-2 text-[20px]">
+        <span className="text-green-500">Boot progress:</span>
+        <span className="text-green-300">{loadingProgress}%</span>
+        <span className="text-green-400 blink">█</span>
+      </div>
+
+      {/* Animation CSS du curseur */}
+      <style>
+        {`
+          .blink {
+            animation: blinkCursor 0.9s steps(1) infinite;
+          }
+
+          @keyframes blinkCursor {
+            50% { opacity: 0; }
+          }
+        `}
+      </style>
+    </div>
+  )}
         {/* Canvas du jeu */}
         <Game />
       </main>
