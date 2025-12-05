@@ -2268,8 +2268,8 @@ export class MainScene extends Phaser.Scene {
 
   // ==================== INTERACTIONS ====================
   private handleInteraction(): void {
-    // Vérifier d'abord si le joueur interagit avec le téléphone
-    if (this.nearSpecialObject?.phone) {
+    // Vérifier d'abord si le joueur interagit avec le téléphone (mais pas s'il le porte déjà)
+    if (this.nearSpecialObject?.phone && !this.isCarryingPhone) {
       this.handlePhoneInteraction();
       return;
     }
@@ -2279,9 +2279,21 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    if (this.nearSpecialObject && !this.nearSpecialObject.interacted) {
-      this.interactWithSpecialObject(this.nearSpecialObject);
-      return;
+    if (this.nearSpecialObject) {
+      // Toujours interactif si on porte le téléphone qu'il cherche
+      if (
+        this.nearSpecialObject.type === "tux" &&
+        this.isCarryingPhone &&
+        this.nearSpecialObject.phoneFound
+      ) {
+        this.interactWithSpecialObject(this.nearSpecialObject);
+        return;
+      }
+      // Ou si on n'a pas encore interagi
+      if (!this.nearSpecialObject.interacted) {
+        this.interactWithSpecialObject(this.nearSpecialObject);
+        return;
+      }
     }
 
     if (this.nearBuilding) {
