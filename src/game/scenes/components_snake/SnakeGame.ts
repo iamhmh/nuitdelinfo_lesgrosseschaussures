@@ -227,15 +227,28 @@ export class SnakeGame {
       );
     }
 
-    // Dessiner la nourriture
+    // Dessiner la nourriture (pomme rouge foncé pour meilleure visibilité)
     if (this.food) {
-      this.foodGraphics.fillStyle(0xf59e0b, 1);
+      this.foodGraphics.fillStyle(0xdc2626, 1); // Rouge foncé
       const fx = this.gameX + this.food.x * this.cellSize;
       const fy = this.gameY + this.food.y * this.cellSize;
       this.foodGraphics.fillCircle(
         fx + this.cellSize / 2,
         fy + this.cellSize / 2,
         this.cellSize / 2 - 1
+      );
+      // Ajouter un petit reflet pour un effet pomme
+      this.foodGraphics.fillStyle(0x7f1d1d, 1); // Rouge encore plus foncé pour le contour
+      this.foodGraphics.fillCircle(
+        fx + this.cellSize / 2,
+        fy + this.cellSize / 2,
+        this.cellSize / 2 - 3
+      );
+      this.foodGraphics.fillStyle(0xdc2626, 1);
+      this.foodGraphics.fillCircle(
+        fx + this.cellSize / 2 - 2,
+        fy + this.cellSize / 2 - 2,
+        this.cellSize / 2 - 5
       );
     }
   }
