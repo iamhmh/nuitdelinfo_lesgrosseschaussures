@@ -14,9 +14,26 @@ export class UIScene extends Phaser.Scene {
   private reconditionedText!: Phaser.GameObjects.Text
   private distributedText!: Phaser.GameObjects.Text
   private inventoryText!: Phaser.GameObjects.Text
+  
+  // Référence à MainScene pour nettoyer les listeners
+  private mainScene: Phaser.Scene | null = null
 
   constructor() {
     super({ key: 'UIScene' })
+  }
+
+  /**
+   * Réinitialise l'état de l'UI lors du restart
+   */
+  init(): void {
+    // Nettoyer les anciens listeners si MainScene existe
+    if (this.mainScene) {
+      this.mainScene.events.off('updateStats')
+      this.mainScene.events.off('showMessage')
+      this.mainScene.events.off('nearBuilding')
+      this.mainScene.events.off('victory')
+    }
+    this.mainScene = null
   }
 
   create(): void {
@@ -26,9 +43,9 @@ export class UIScene extends Phaser.Scene {
     this.createInstructions()
     
     // Écouter les événements de la scène principale
-    const mainScene = this.scene.get('MainScene')
+    this.mainScene = this.scene.get('MainScene')
     
-    mainScene.events.on('updateStats', (stats: {
+    this.mainScene.events.on('updateStats', (stats: {
       collected: number
       reconditioned: number
       distributed: number
@@ -37,11 +54,11 @@ export class UIScene extends Phaser.Scene {
       this.updateStats(stats)
     })
     
-    mainScene.events.on('showMessage', (message: string) => {
+    this.mainScene.events.on('showMessage', (message: string) => {
       this.showMessage(message)
     })
     
-    mainScene.events.on('nearBuilding', (building: { name: string; type: string } | null) => {
+    this.mainScene.events.on('nearBuilding', (building: { name: string; type: string } | null) => {
       if (building) {
         this.showInteractHint(building)
       } else {
@@ -49,7 +66,7 @@ export class UIScene extends Phaser.Scene {
       }
     })
     
-    mainScene.events.on('victory', () => {
+    this.mainScene.events.on('victory', () => {
       this.showVictory()
     })
   }

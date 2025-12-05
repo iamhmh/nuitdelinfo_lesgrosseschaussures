@@ -132,6 +132,41 @@ export class MainScene extends Phaser.Scene {
     super({ key: 'MainScene' })
   }
 
+  /**
+   * Réinitialise complètement l'état du jeu
+   * Appelé automatiquement par Phaser avant create() lors d'un restart
+   */
+  init(): void {
+    // Réinitialiser les compteurs
+    this.collectedCount = 0
+    this.reconditionedCount = 0
+    this.distributedCount = 0
+    this.inventory = 0
+    
+    // Réinitialiser les références
+    this.nearBuilding = null
+    this.nearComputer = null
+    
+    // Réinitialiser les tableaux (important pour éviter les doublons)
+    this.buildings = []
+    this.occupiedZones = []
+    this.computers = []
+    this.cars = []
+    this.npcs = []
+    this.trafficLights = []
+    
+    // Réinitialiser les groupes de collision
+    this.buildingColliders = null
+    this.treeColliders = null
+    
+    // Réinitialiser le système de feux
+    this.trafficPhase = 'h_green'
+    this.trafficTimer = 0
+    
+    // Réinitialiser le debug
+    this.debugGridVisible = true
+  }
+
   create(): void {
     // Initialiser les groupes de collision
     this.buildingColliders = this.physics.add.staticGroup()
@@ -153,6 +188,17 @@ export class MainScene extends Phaser.Scene {
     this.createDebugUI()
     
     this.physics.world.setBounds(0, 0, this.mapWidth, this.mapHeight)
+    
+    // Émettre les stats initiales (toutes à 0) après un court délai
+    // pour laisser le temps à UIScene de créer ses éléments
+    this.time.delayedCall(100, () => {
+      this.events.emit('updateStats', {
+        collected: this.collectedCount,
+        reconditioned: this.reconditionedCount,
+        distributed: this.distributedCount,
+        inventory: this.inventory
+      })
+    })
   }
   
   /**
@@ -1112,6 +1158,8 @@ export class MainScene extends Phaser.Scene {
    * Met à jour le cycle des feux tricolores
    */
   private updateTrafficLights(delta: number): void {
+    if (!this.trafficLights || this.trafficLights.length === 0) return
+    
     this.trafficTimer += delta
     
     // Déterminer la durée selon la phase
@@ -1147,7 +1195,12 @@ export class MainScene extends Phaser.Scene {
    * Met à jour les textures des feux selon la phase actuelle
    */
   private updateTrafficLightSprites(): void {
+    if (!this.trafficLights || this.trafficLights.length === 0) return
+    
     this.trafficLights.forEach(light => {
+      // Vérifier que les sprites existent et sont actifs
+      if (!light.spriteH || !light.spriteH.scene || !light.spriteV || !light.spriteV.scene) return
+      
       switch (this.trafficPhase) {
         case 'h_green':
           light.spriteH.setTexture('traffic_light_green')
@@ -1233,6 +1286,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleMovement(): void {
+    if (!this.player || !this.player.body || !this.player.active) return
+    
     const body = this.player.body as Phaser.Physics.Arcade.Body
     body.setVelocity(0)
     
@@ -1269,15 +1324,20 @@ export class MainScene extends Phaser.Scene {
   }
 
   private checkProximity(): void {
+    if (!this.player || !this.player.active) return
+    
     this.nearBuilding = null
     this.nearComputer = null
     
-    this.computers.forEach(c => {
-      if (c.interactIcon && !c.collected) {
-        c.interactIcon.setVisible(false)
-      }
-    })
+    if (this.computers) {
+      this.computers.forEach(c => {
+        if (c.interactIcon && !c.collected) {
+          c.interactIcon.setVisible(false)
+        }
+      })
+    }
     
+    if (!this.buildings) return
     for (const building of this.buildings) {
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, building.x, building.y)
       if (dist < 120) {
@@ -1303,13 +1363,18 @@ export class MainScene extends Phaser.Scene {
   }
 
   private updateDepth(): void {
+    if (!this.player || !this.player.active) return
     this.player.setDepth(this.player.y + 10)
   }
 
   private updateCars(): void {
+    if (!this.cars || this.cars.length === 0) return
+    
     const delta = this.game.loop.delta / 1000
     
     this.cars.forEach(car => {
+      if (!car.sprite || !car.sprite.active) return
+      
       // Vérifier si la voiture doit s'arrêter au feu rouge
       const mustStop = this.shouldCarStop(car)
       
@@ -1344,6 +1409,9 @@ export class MainScene extends Phaser.Scene {
    * Vérifie les collisions entre le joueur et les voitures
    */
   private checkCarCollisions(): void {
+    if (!this.player || !this.player.active) return
+    if (!this.cars || this.cars.length === 0) return
+    
     const playerBounds = {
       x: this.player.x - 10,
       y: this.player.y - 40,
@@ -1352,6 +1420,7 @@ export class MainScene extends Phaser.Scene {
     }
     
     for (const car of this.cars) {
+      if (!car.sprite || !car.sprite.active) continue
       // Calculer les bounds de la voiture selon son orientation
       let carWidth: number, carHeight: number
       if (car.direction === 'h') {
@@ -1410,9 +1479,14 @@ export class MainScene extends Phaser.Scene {
   }
 
   private updateNPCs(): void {
+    if (!this.npcs || this.npcs.length === 0) return
+    
     const delta = this.game.loop.delta / 1000
     
     this.npcs.forEach(npc => {
+      // Vérifier que le sprite existe et a des animations
+      if (!npc.sprite || !npc.sprite.anims) return
+      
       if (npc.isMoving && npc.targetX !== undefined) {
         const dx = npc.targetX - npc.sprite.x
         
@@ -1432,6 +1506,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   private updateDebug(): void {
+    if (!this.player || !this.player.active || !this.debugText) return
+    
     const tx = Math.floor(this.player.x / this.tileSize)
     const ty = Math.floor(this.player.y / this.tileSize)
     const onRoad = this.isOnRoad(this.player.x, this.player.y) ? '✅ Route' : '❌ Herbe'
