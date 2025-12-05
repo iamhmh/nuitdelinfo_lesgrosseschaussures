@@ -100,13 +100,13 @@ export default function GamePage() {
         <Game />
       </main>
 
-      {/* Mini tutoriel au démarrage */}
+      {/* Mini tutoriel au démarrage - en haut à gauche, moins intrusif */}
       {!isLoading && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-          <div className="glass-dark rounded-xl px-6 py-3 text-center animate-fade-in">
-            <p className="text-slate-400 text-sm">
-              <span className="text-green-400 font-bold">Mission :</span> Collectez les PC obsolètes → 
-              Reconditionnez-les à l'atelier → Distribuez-les aux écoles
+        <div className="absolute top-20 left-4 z-10 pointer-events-none">
+          <div className="glass-dark rounded-xl px-4 py-2 animate-fade-in max-w-xs">
+            <p className="text-slate-400 text-xs">
+              <span className="text-green-400 font-bold">🎯 Mission :</span> Collectez les PC → 
+              Atelier NIRD → Distribuez aux écoles
             </p>
           </div>
         </div>

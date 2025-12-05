@@ -113,7 +113,7 @@ export class UIScene extends Phaser.Scene {
     const width = 600
     const height = 60
     const x = this.cameras.main.width / 2
-    const y = this.cameras.main.height - 50
+    const y = this.cameras.main.height - 100  // Remonté de 50 pixels
     
     // Fond
     const bg = this.add.graphics()
@@ -136,7 +136,7 @@ export class UIScene extends Phaser.Scene {
 
   private createInteractHint(): void {
     const x = this.cameras.main.width / 2
-    const y = this.cameras.main.height - 120
+    const y = this.cameras.main.height - 170  // Remonté de 50 pixels
     
     // Fond
     const bg = this.add.graphics()
@@ -256,10 +256,10 @@ export class UIScene extends Phaser.Scene {
       0.9
     )
     
-    // Texte de victoire
+    // Texte de victoire - plus haut
     const victoryTitle = this.add.text(
       this.cameras.main.width / 2,
-      this.cameras.main.height / 2 - 80,
+      this.cameras.main.height / 2 - 150,
       '🎉 MISSION ACCOMPLIE ! 🎉',
       {
         fontSize: '48px',
@@ -270,7 +270,7 @@ export class UIScene extends Phaser.Scene {
     
     const victoryText = this.add.text(
       this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
+      this.cameras.main.height / 2 - 20,
       [
         'Vous avez redistribué 8 ordinateurs reconditionnés !',
         '',
@@ -287,10 +287,15 @@ export class UIScene extends Phaser.Scene {
       }
     ).setOrigin(0.5)
     
-    // Bouton rejouer
+    // Bouton rejouer - zone interactive plus grande et mieux définie
+    const buttonWidth = 160
+    const buttonHeight = 50
+    const buttonX = this.cameras.main.width / 2
+    const buttonY = this.cameras.main.height / 2 + 130
+    
     const buttonBg = this.add.graphics()
     buttonBg.fillStyle(0x22c55e, 1)
-    buttonBg.fillRoundedRect(-80, -25, 160, 50, 25)
+    buttonBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 25)
     
     const buttonText = this.add.text(0, 0, 'Rejouer', {
       fontSize: '20px',
@@ -298,30 +303,33 @@ export class UIScene extends Phaser.Scene {
       fontStyle: 'bold',
     }).setOrigin(0.5)
     
-    const button = this.add.container(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2 + 150,
-      [buttonBg, buttonText]
-    )
-    button.setInteractive(new Phaser.Geom.Rectangle(-80, -25, 160, 50), Phaser.Geom.Rectangle.Contains)
+    const button = this.add.container(buttonX, buttonY, [buttonBg, buttonText])
+    
+    // Zone interactive plus grande
+    const hitArea = new Phaser.Geom.Rectangle(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight)
+    button.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains)
+    button.setSize(buttonWidth, buttonHeight)
     
     button.on('pointerover', () => {
       buttonBg.clear()
       buttonBg.fillStyle(0x16a34a, 1)
-      buttonBg.fillRoundedRect(-80, -25, 160, 50, 25)
+      buttonBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 25)
+      this.input.setDefaultCursor('pointer')
     })
     
     button.on('pointerout', () => {
       buttonBg.clear()
       buttonBg.fillStyle(0x22c55e, 1)
-      buttonBg.fillRoundedRect(-80, -25, 160, 50, 25)
+      buttonBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 25)
+      this.input.setDefaultCursor('default')
     })
     
     button.on('pointerdown', () => {
-      this.scene.stop('UIScene')
+      // Redémarrer le jeu proprement
+      this.input.setDefaultCursor('default')
       this.scene.stop('MainScene')
-      this.scene.start('MainScene')
-      this.scene.start('UIScene')
+      this.scene.stop('UIScene')
+      this.scene.start('BootScene')  // Recommencer depuis le début
     })
     
     // Animation d'entrée
