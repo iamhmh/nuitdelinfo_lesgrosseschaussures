@@ -1,0 +1,135 @@
+{
+  "defiNational": {
+    "nom": "Nuit de l'Info 2024",
+    "description": "La Nuit de l'Info est un défi national de programmation qui se déroule chaque année en décembre. Les étudiants ont une nuit entière pour réaliser une application web autour d'un thème imposé.",
+    "date": "Du 5 au 6 décembre 2024",
+    "duree": "Une nuit entière (environ 16 heures)",
+    "theme2024": "Le numérique responsable et l'écologie digitale",
+    "objectifs": [
+      "Sensibiliser à l'impact environnemental du numérique",
+      "Promouvoir le réemploi et le reconditionnement des équipements informatiques",
+      "Découvrir les alternatives open source comme Linux"
+    ],
+    "inscription": "Les inscriptions se font sur le site officiel nuitdelinfo.com",
+    "participation": "Ouvert à tous les étudiants en informatique, seuls ou en équipe"
+  },
+  "application": {
+    "nom": "Recondi_Tech",
+    "description": "Un jeu éducatif de type RPG/simulation urbaine qui sensibilise au reconditionnement informatique et à l'économie circulaire du numérique.",
+    "objectifJeu": "Collecter des ordinateurs obsolètes, les reconditionner sous Linux, et les redistribuer aux écoles et universités de la ville.",
+    "technologies": [
+      "React",
+      "TypeScript",
+      "Phaser 3 (moteur de jeu)",
+      "Tailwind CSS",
+      "Zustand (gestion d'état)",
+      "Three.js (3D)"
+    ],
+    "fonctionnalites": [
+      "Exploration d'une ville procédurale",
+      "Collecte d'ordinateurs obsolètes dans les entreprises",
+      "Atelier de reconditionnement avec mini-jeux",
+      "Distribution aux établissements scolaires",
+      "Système de progression et statistiques"
+    ]
+  },
+  "nird": {
+    "nom": "NIRD - Numérique Responsable et Durable",
+    "description": "Association fictive dans le jeu qui gère l'atelier de reconditionnement Linux. Inspirée des initiatives réelles de réemploi informatique.",
+    "mission": "Reconditionner des équipements informatiques obsolètes en installant des distributions Linux légères et libres, puis les redistribuer aux populations qui en ont besoin.",
+    "valeurs": [
+      "Réemploi et économie circulaire",
+      "Logiciels libres et open source",
+      "Accessibilité numérique pour tous",
+      "Réduction de l'empreinte carbone du numérique"
+    ],
+    "services": [
+      "Collecte de matériel informatique",
+      "Reconditionnement et installation Linux",
+      "Formation à l'utilisation",
+      "Distribution aux écoles et associations"
+    ]
+  },
+  "contacts": {
+    "equipe": "Les Grosses Chaussures",
+    "membres": ["Développeurs passionnés de la Nuit de l'Info 2024"],
+    "github": "https://github.com/iamhmh/nuitdelinfo_lesgrosseschaussures",
+    "evenement": {
+      "site": "https://www.nuitdelinfo.com/",
+      "email": "contact@nuitdelinfo.com"
+    }
+  },
+  "horaires": {
+    "debutDefi": "5 décembre 2024 à 16h45",
+    "finDefi": "6 décembre 2024 à 8h00",
+    "dureeEffective": "Environ 15 heures de développement non-stop"
+  },
+  "gameplay": {
+    "controles": {
+      "deplacement": "ZQSD ou flèches directionnelles",
+      "interaction": "Touche E",
+      "pause": "Touche Echap ou clic sur Pause"
+    },
+    "etapes": [
+      {
+        "numero": 1,
+        "nom": "Collecte",
+        "description": "Explorez la ville et récupérez les PC obsolètes devant les entreprises et bureaux. Vous pouvez en porter 2 maximum."
+      },
+      {
+        "numero": 2,
+        "nom": "Reconditionnement",
+        "description": "Apportez les PC à l'atelier NIRD pour les reconditionner. Un mini-jeu interactif vous guide dans l'installation de Linux."
+      },
+      {
+        "numero": 3,
+        "nom": "Distribution",
+        "description": "Livrez les PC reconditionnés aux écoles et universités de la ville. Chaque établissement peut recevoir 2 PC maximum."
+      }
+    ],
+    "objectifFinal": "Distribuer 8 PC reconditionnés pour remporter la partie et sensibiliser à l'économie circulaire du numérique."
+  },
+  "faq": [
+    {
+      "question": "Qu'est-ce que la Nuit de l'Info ?",
+      "reponse": "C'est un défi national de programmation où des étudiants développent une application web en une nuit sur un thème imposé."
+    },
+    {
+      "question": "Comment jouer à Recondi_Tech ?",
+      "reponse": "Utilisez ZQSD pour vous déplacer, E pour interagir. Collectez les PC obsolètes, apportez-les à l'atelier NIRD, puis distribuez-les aux écoles."
+    },
+    {
+      "question": "Qu'est-ce que le reconditionnement informatique ?",
+      "reponse": "C'est le processus de remise en état d'équipements informatiques usagés pour leur donner une seconde vie, souvent avec des systèmes d'exploitation légers comme Linux."
+    },
+    {
+      "question": "Pourquoi Linux ?",
+      "reponse": "Linux est un système d'exploitation libre, gratuit et léger qui permet de faire fonctionner efficacement des ordinateurs anciens, prolongeant ainsi leur durée de vie."
+    },
+    {
+      "question": "Comment contacter l'équipe ?",
+      "reponse": "Vous pouvez nous retrouver sur notre dépôt GitHub. Notre équipe s'appelle 'Les Grosses Chaussures'."
+    },
+    {
+      "question": "Le jeu est-il terminé ?",
+      "reponse": "Le jeu a été développé lors de la Nuit de l'Info 2024. Il peut encore évoluer après l'événement !"
+    }
+  ],
+  "ecologie": {
+    "impactNumerique": {
+      "description": "Le numérique représente environ 4% des émissions mondiales de gaz à effet de serre, dont une grande partie provient de la fabrication des équipements.",
+      "solutions": [
+        "Prolonger la durée de vie des équipements",
+        "Favoriser le réemploi et le reconditionnement",
+        "Utiliser des logiciels légers et optimisés",
+        "Recycler correctement les équipements en fin de vie"
+      ]
+    },
+    "conseils": [
+      "Gardez vos appareils le plus longtemps possible",
+      "Préférez le reconditionnement à l'achat neuf",
+      "Installez des systèmes d'exploitation légers sur les vieux PC",
+      "Faites don de vos anciens équipements aux associations"
+    ]
+  }
+}

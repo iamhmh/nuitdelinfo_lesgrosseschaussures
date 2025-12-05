@@ -183,6 +183,7 @@ function LinuxRoom() {
     const radius = 0.55
     const x = Math.cos(angle) * radius
     const z = Math.sin(angle) * radius
+    // eslint-disable-next-line react-hooks/purity
     const y = 0.95 + Math.random() * 0.5
 
     const colors = ["#ff4d6d", "#ffd700", "#4da6ff"]
@@ -365,7 +366,7 @@ function ComputerModel({ onScreenClick, isZooming }: ComputerModelProps) {
   const { camera } = useThree()
   const zoomProgress = useRef(0)
 
-  useFrame((state) => {
+  useFrame(() => {
     if (!groupRef.current) return
 
     if (!isZooming) {
