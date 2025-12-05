@@ -248,9 +248,10 @@ export class UIScene extends Phaser.Scene {
       yoyo: true,
     });
 
-    // Couleur de progression
+    // Victoire si 8 PC distribués
     if (stats.distributed >= 8) {
       this.distributedText.setColor("#22c55e");
+      this.showVictory();
     }
   }
 

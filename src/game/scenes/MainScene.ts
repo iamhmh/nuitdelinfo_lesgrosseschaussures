@@ -2808,21 +2808,6 @@ export class MainScene extends Phaser.Scene {
     });
 
     this.events.emit("showMessage", `PC offert à ${school.name} ! 🐧`);
-
-    // Victoire si tous les 8 PC ont été distribués
-    if (this.distributedCount >= 8) {
-      // Utiliser setTimeout natif car time.delayedCall est affecté par pause
-      setTimeout(() => {
-        this.events.emit("victory");
-        // Appeler directement UIScene
-        const uiScene = this.scene.get("UIScene") as Phaser.Scene & {
-          showVictory?: () => void;
-        };
-        if (uiScene && typeof uiScene.showVictory === "function") {
-          uiScene.showVictory();
-        }
-      }, 500);
-    }
   }
 
   /**
