@@ -14,21 +14,38 @@ export class UIScene extends Phaser.Scene {
   private reconditionedText!: Phaser.GameObjects.Text
   private distributedText!: Phaser.GameObjects.Text
   private inventoryText!: Phaser.GameObjects.Text
+  
+  // Référence à MainScene pour nettoyer les listeners
+  private mainScene: Phaser.Scene | null = null
 
   constructor() {
     super({ key: 'UIScene' })
+  }
+
+  /**
+   * Réinitialise l'état de l'UI lors du restart
+   */
+  init(): void {
+    // Nettoyer les anciens listeners si MainScene existe
+    if (this.mainScene) {
+      this.mainScene.events.off('updateStats')
+      this.mainScene.events.off('showMessage')
+      this.mainScene.events.off('nearBuilding')
+      this.mainScene.events.off('victory')
+    }
+    this.mainScene = null
   }
 
   create(): void {
     this.createStatsPanel()
     this.createMessageBox()
     this.createInteractHint()
-    this.createInstructions()
+    // Les instructions sont maintenant dans le menu pause de React
     
     // Écouter les événements de la scène principale
-    const mainScene = this.scene.get('MainScene')
+    this.mainScene = this.scene.get('MainScene')
     
-    mainScene.events.on('updateStats', (stats: {
+    this.mainScene.events.on('updateStats', (stats: {
       collected: number
       reconditioned: number
       distributed: number
@@ -37,11 +54,11 @@ export class UIScene extends Phaser.Scene {
       this.updateStats(stats)
     })
     
-    mainScene.events.on('showMessage', (message: string) => {
+    this.mainScene.events.on('showMessage', (message: string) => {
       this.showMessage(message)
     })
     
-    mainScene.events.on('nearBuilding', (building: { name: string; type: string } | null) => {
+    this.mainScene.events.on('nearBuilding', (building: { name: string; type: string } | null) => {
       if (building) {
         this.showInteractHint(building)
       } else {
@@ -49,7 +66,7 @@ export class UIScene extends Phaser.Scene {
       }
     })
     
-    mainScene.events.on('victory', () => {
+    this.mainScene.events.on('victory', () => {
       this.showVictory()
     })
   }
@@ -66,7 +83,7 @@ export class UIScene extends Phaser.Scene {
     bg.strokeRoundedRect(0, 0, panelWidth, panelHeight, 12)
     
     // Titre
-    const title = this.add.text(panelWidth / 2, 15, '🌿 MISSION NIRD', {
+    const title = this.add.text(panelWidth / 2, 15, '📱 Recondi_Tech.apk', {
       fontSize: '16px',
       color: '#22c55e',
       fontStyle: 'bold',
@@ -113,7 +130,7 @@ export class UIScene extends Phaser.Scene {
     const width = 600
     const height = 60
     const x = this.cameras.main.width / 2
-    const y = this.cameras.main.height - 50
+    const y = this.cameras.main.height - 100  // Remonté de 50 pixels
     
     // Fond
     const bg = this.add.graphics()
@@ -136,7 +153,7 @@ export class UIScene extends Phaser.Scene {
 
   private createInteractHint(): void {
     const x = this.cameras.main.width / 2
-    const y = this.cameras.main.height - 120
+    const y = this.cameras.main.height - 170  // Remonté de 50 pixels
     
     // Fond
     const bg = this.add.graphics()
@@ -162,30 +179,6 @@ export class UIScene extends Phaser.Scene {
       repeat: -1,
       ease: 'Sine.easeInOut',
     })
-  }
-
-  private createInstructions(): void {
-    const x = this.cameras.main.width - 20
-    const y = 20
-    
-    // Fond
-    const bg = this.add.graphics()
-    bg.fillStyle(0x0f172a, 0.8)
-    bg.fillRoundedRect(-180, 0, 180, 90, 8)
-    
-    // Instructions
-    const text = this.add.text(-90, 45, [
-      '🎮 CONTRÔLES',
-      '↑←↓→ ou WASD : Déplacer',
-      'E : Interagir',
-    ].join('\n'), {
-      fontSize: '12px',
-      color: '#94a3b8',
-      align: 'center',
-      lineSpacing: 4,
-    }).setOrigin(0.5)
-    
-    this.add.container(x, y, [bg, text])
   }
 
   private updateStats(stats: {
@@ -237,6 +230,7 @@ export class UIScene extends Phaser.Scene {
     })
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private showInteractHint(_building: { name: string; type: string }): void {
     this.interactHint.setVisible(true)
   }
@@ -256,10 +250,10 @@ export class UIScene extends Phaser.Scene {
       0.9
     )
     
-    // Texte de victoire
+    // Texte de victoire - plus haut
     const victoryTitle = this.add.text(
       this.cameras.main.width / 2,
-      this.cameras.main.height / 2 - 80,
+      this.cameras.main.height / 2 - 150,
       '🎉 MISSION ACCOMPLIE ! 🎉',
       {
         fontSize: '48px',
@@ -270,7 +264,7 @@ export class UIScene extends Phaser.Scene {
     
     const victoryText = this.add.text(
       this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
+      this.cameras.main.height / 2 - 20,
       [
         'Vous avez redistribué 8 ordinateurs reconditionnés !',
         '',
@@ -287,10 +281,15 @@ export class UIScene extends Phaser.Scene {
       }
     ).setOrigin(0.5)
     
-    // Bouton rejouer
+    // Bouton rejouer - zone interactive plus grande et mieux définie
+    const buttonWidth = 160
+    const buttonHeight = 50
+    const buttonX = this.cameras.main.width / 2
+    const buttonY = this.cameras.main.height / 2 + 130
+    
     const buttonBg = this.add.graphics()
     buttonBg.fillStyle(0x22c55e, 1)
-    buttonBg.fillRoundedRect(-80, -25, 160, 50, 25)
+    buttonBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 25)
     
     const buttonText = this.add.text(0, 0, 'Rejouer', {
       fontSize: '20px',
@@ -298,30 +297,33 @@ export class UIScene extends Phaser.Scene {
       fontStyle: 'bold',
     }).setOrigin(0.5)
     
-    const button = this.add.container(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2 + 150,
-      [buttonBg, buttonText]
-    )
-    button.setInteractive(new Phaser.Geom.Rectangle(-80, -25, 160, 50), Phaser.Geom.Rectangle.Contains)
+    const button = this.add.container(buttonX, buttonY, [buttonBg, buttonText])
+    
+    // Zone interactive plus grande
+    const hitArea = new Phaser.Geom.Rectangle(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight)
+    button.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains)
+    button.setSize(buttonWidth, buttonHeight)
     
     button.on('pointerover', () => {
       buttonBg.clear()
       buttonBg.fillStyle(0x16a34a, 1)
-      buttonBg.fillRoundedRect(-80, -25, 160, 50, 25)
+      buttonBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 25)
+      this.input.setDefaultCursor('pointer')
     })
     
     button.on('pointerout', () => {
       buttonBg.clear()
       buttonBg.fillStyle(0x22c55e, 1)
-      buttonBg.fillRoundedRect(-80, -25, 160, 50, 25)
+      buttonBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 25)
+      this.input.setDefaultCursor('default')
     })
     
     button.on('pointerdown', () => {
-      this.scene.stop('UIScene')
+      // Redémarrer le jeu proprement
+      this.input.setDefaultCursor('default')
       this.scene.stop('MainScene')
-      this.scene.start('MainScene')
-      this.scene.start('UIScene')
+      this.scene.stop('UIScene')
+      this.scene.start('BootScene')  // Recommencer depuis le début
     })
     
     // Animation d'entrée
