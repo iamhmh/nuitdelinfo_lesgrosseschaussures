@@ -67,7 +67,7 @@ export default function GamePage() {
 
   // Gérer l'ouverture/fermeture du jeu Snake
   useEffect(() => {
-    let snakeGameInstance: any = null
+    let snakeGameInstance: Phaser.Game | null = null
 
     if (showSnakeGame) {
       // Importer Phaser et créer une instance du jeu Snake

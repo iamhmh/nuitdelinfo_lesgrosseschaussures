@@ -9,11 +9,12 @@ interface SnakeSegment {
 }
 
 export class SnakeGame {
+  private scene: Phaser.Scene;
   private gameWidth: number;
   private gameHeight: number;
   private gameX: number;
   private gameY: number;
-  private cellSize: number = 10;
+  private cellSize: number = 20;
 
   // État du jeu
   private snake: SnakeSegment[] = [];
@@ -22,13 +23,13 @@ export class SnakeGame {
   private nextDirection: { x: number; y: number } = { x: 1, y: 0 };
   private score: number = 0;
   private gameRunning: boolean = true;
+  private onGameOver: ((score: number) => void) | null = null;
 
   // Graphics et affichage
   private gameContainer!: Phaser.GameObjects.Container;
   private snakeGraphics!: Phaser.GameObjects.Graphics;
   private foodGraphics!: Phaser.GameObjects.Graphics;
   private scoreText!: Phaser.GameObjects.Text;
-  private gameOverText!: Phaser.GameObjects.Text;
 
   // Timer pour le mouvement
   private moveTimer: number = 0;
@@ -39,12 +40,15 @@ export class SnakeGame {
     x: number,
     y: number,
     width: number,
-    height: number
+    height: number,
+    onGameOver?: (score: number) => void
   ) {
+    this.scene = scene;
     this.gameWidth = width;
     this.gameHeight = height;
     this.gameX = x;
     this.gameY = y;
+    this.onGameOver = onGameOver || null;
 
     this.gameContainer = scene.add.container(x, y);
 
@@ -52,23 +56,13 @@ export class SnakeGame {
     this.snakeGraphics = scene.add.graphics();
     this.foodGraphics = scene.add.graphics();
 
-    // Score text (affiche juste le nombre avec zéros)
-    this.scoreText = scene.add.text(x + 5, y + 5, "0000", {
-      fontSize: "10px",
-      color: "#22c55e",
+    // Score text (affiche juste le nombre avec zéros) - plus grand
+    this.scoreText = scene.add.text(x + 15, y + 15, "0000", {
+      fontSize: "32px",
+      color: "#306230",
       fontFamily: "monospace",
+      fontStyle: "bold",
     });
-
-    // Game over text (caché au départ)
-    this.gameOverText = scene.add
-      .text(x + width / 2, y + height / 2, "GAME OVER\nScore: 0", {
-        fontSize: "12px",
-        color: "#ef4444",
-        fontFamily: "monospace",
-        align: "center",
-      })
-      .setOrigin(0.5);
-    this.gameOverText.setVisible(false);
 
     console.log("SnakeGame constructor: ", {
       x,
@@ -256,16 +250,28 @@ export class SnakeGame {
 
   private endGame(): void {
     this.gameRunning = false;
-    this.gameOverText.setText(
-      `GAME OVER\n${this.score.toString().padStart(4, "0")}`
-    );
-    this.gameOverText.setVisible(true);
+    console.log("Game Over! Score:", this.score);
+    
+    // Appeler le callback de game over
+    if (this.onGameOver) {
+      this.onGameOver(this.score);
+    }
   }
 
   reset(): void {
     this.initializeGame();
-    this.gameOverText.setVisible(false);
     this.draw();
+  }
+
+  getScore(): number {
+    return this.score;
+  }
+
+  destroy(): void {
+    this.snakeGraphics.destroy();
+    this.foodGraphics.destroy();
+    this.scoreText.destroy();
+    this.gameContainer.destroy();
   }
 
   isRunning(): boolean {
