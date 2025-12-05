@@ -2811,17 +2811,17 @@ export class MainScene extends Phaser.Scene {
 
     // Victoire si tous les 8 PC ont été distribués
     if (this.distributedCount >= 8) {
-      // Délai pour laisser le temps aux animations de se terminer
-      this.time.delayedCall(500, () => {
+      // Utiliser setTimeout natif car time.delayedCall est affecté par pause
+      setTimeout(() => {
         this.events.emit("victory");
-        // Backup: appeler directement UIScene si l'événement ne fonctionne pas
+        // Appeler directement UIScene
         const uiScene = this.scene.get("UIScene") as Phaser.Scene & {
           showVictory?: () => void;
         };
         if (uiScene && typeof uiScene.showVictory === "function") {
           uiScene.showVictory();
         }
-      });
+      }, 500);
     }
   }
 

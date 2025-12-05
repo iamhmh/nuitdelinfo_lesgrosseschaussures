@@ -255,7 +255,6 @@ export class UIScene extends Phaser.Scene {
   }
 
   public showVictory(): void {
-    console.log("showVictory appelé !");
     
     // Overlay sombre
     const overlay = this.add.rectangle(
