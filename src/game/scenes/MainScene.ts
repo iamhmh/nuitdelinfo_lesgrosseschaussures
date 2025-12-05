@@ -2387,6 +2387,27 @@ export class MainScene extends Phaser.Scene {
         this.isCarryingPhone = false;
         obj.phoneFound = false;
 
+        // Faire disparaître Tux avec une animation
+        if (obj.sprite) {
+          this.tweens.add({
+            targets: obj.sprite,
+            y: obj.y - 50,
+            alpha: 0,
+            scale: 0.5,
+            duration: 800,
+            ease: "Cubic.easeIn",
+            onComplete: () => {
+              obj.sprite?.destroy();
+              obj.sprite = undefined;
+              // Masquer aussi l'icône d'interaction si elle existe
+              if (obj.interactIcon) {
+                obj.interactIcon.destroy();
+                obj.interactIcon = undefined;
+              }
+            },
+          });
+        }
+
         return;
       }
 
