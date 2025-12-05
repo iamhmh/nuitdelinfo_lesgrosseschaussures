@@ -3,7 +3,6 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { 
   RoundedBox, 
   Text, 
-  Float,
   Sparkles,
   Environment,
   Html
@@ -13,6 +12,10 @@ import * as THREE from 'three'
 interface ComputerModelProps {
   onScreenClick: () => void
   isZooming: boolean
+}
+
+interface Computer3DProps {
+  onEnterGame: () => void
 }
 
 // Loader pendant le chargement
@@ -27,8 +30,165 @@ function Loader() {
   )
 }
 
+/* -------------------------------------------------------
+    Décor Linux : Mur + Bureau + Lampe + Néon NIRD
+--------------------------------------------------------*/
+function LinuxRoom() {
+  const wallColor = "#0f1115";
+  const deskColor = "#1a1f24";
+
+  return (
+    <group position={[0, 0, -2]}>
+      {/* MUR */}
+      <mesh position={[0, 1.6, -0.1]} scale={[18, 7, 1]}>
+        <planeGeometry args={[1, 1]} />
+        <meshStandardMaterial color={wallColor} />
+      </mesh>
+
+      {/* BUREAU */}
+      <mesh position={[0, -1.1, 1]}>
+        <boxGeometry args={[14, 0.25, 5]} />
+        <meshStandardMaterial
+          color={deskColor}
+          roughness={0.6}
+          metalness={0.1}
+        />
+      </mesh>
+
+      {/* ----------------------------------------------------
+          LAMPE DE BUREAU — posée réellement sur le bureau
+      -----------------------------------------------------*/}
+      <group position={[-3.5, -0.98, 1.5]}>
+        {/* Base */}
+        <mesh>
+          <cylinderGeometry args={[0.25, 0.25, 0.1, 32]} />
+          <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.2} />
+        </mesh>
+
+        {/* Pied vertical */}
+        <mesh position={[0, 0.45, 0]}>
+          <cylinderGeometry args={[0.08, 0.08, 0.9, 32]} />
+          <meshStandardMaterial color="#334155" metalness={0.6} roughness={0.3} />
+        </mesh>
+
+        {/* Tête de lampe */}
+        <mesh position={[0, 0.95, 0.25]} rotation={[-0.4, 0, 0]}>
+          <boxGeometry args={[0.5, 0.22, 0.22]} />
+          <meshStandardMaterial
+            color="#00ff88"
+            emissive="#00ff88"
+            emissiveIntensity={0.7}   // lumière douce
+            metalness={0.3}
+            roughness={0.4}
+          />
+        </mesh>
+
+        {/* Lumière douce émise par la lampe */}
+        <pointLight
+          position={[0, 0.95, 0.25]}
+          intensity={0.8}
+          distance={4}
+          color="#00ff88"
+        />
+      </group>
+
+      {/* ----------------------------------------------------
+          LAMPE DROITE — miroir exact de la gauche
+      -----------------------------------------------------*/}
+      <group position={[3.5, -0.98, 1.5]}>
+        {/* Base */}
+        <mesh>
+          <cylinderGeometry args={[0.25, 0.25, 0.1, 32]} />
+          <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.2} />
+        </mesh>
+
+        {/* Pied */}
+        <mesh position={[0, 0.50, 0]}>
+          <cylinderGeometry args={[0.08, 0.08, 0.9, 32]} />
+          <meshStandardMaterial color="#334155" metalness={0.6} roughness={0.3} />
+        </mesh>
+
+        {/* Tête */}
+        <mesh position={[0, 0.95, 0.25]} rotation={[-0.4, 0, 0]}>
+          <boxGeometry args={[0.5, 0.22, 0.22]} />
+          <meshStandardMaterial
+            color="#00ff88"
+            emissive="#00ff88"
+            emissiveIntensity={0.7}
+            metalness={0.3}
+            roughness={0.4}
+          />
+        </mesh>
+
+        {/* Lumière douce */}
+        <pointLight
+          position={[0, 0.95, 0.25]}
+          intensity={0.8}
+          distance={4}
+          color="#00ff88"
+        />
+      </group>
+
+      <group position={[-2, -0.95, 1.4]} scale={[0.35, 0.35, 0.35]}>
+        {/* Corps */}
+        <mesh>
+          <sphereGeometry args={[0.5, 16, 16]} />
+          <meshStandardMaterial 
+            color="#facc15" 
+            roughness={0.4} 
+            metalness={0.1} 
+            emissive="#facc15" 
+            emissiveIntensity={0.1}
+          />
+        </mesh>
+
+        {/* Tête */}
+        <mesh position={[0, 0.55, 0]}>
+          <sphereGeometry args={[0.35, 16, 16]} />
+          <meshStandardMaterial 
+            color="#facc15" 
+            roughness={0.4} 
+            metalness={0.1} 
+            emissive="#facc15" 
+            emissiveIntensity={0.1}
+          />
+        </mesh>
+
+        {/* Bec */}
+        <mesh position={[0.35, 0.45, 0]} rotation={[0, 0, 0.15]}>
+          <sphereGeometry args={[0.18, 16, 16]} />
+          <meshStandardMaterial 
+            color="#fb923c"
+            roughness={0.3}
+            metalness={0.2}
+            emissive="#fb923c"
+            emissiveIntensity={0.15}
+          />
+        </mesh>
+
+        {/* Œil gauche */}
+        <mesh position={[0.2, 0.6, 0.18]}>
+          <sphereGeometry args={[0.07, 8, 8]} />
+          <meshStandardMaterial color="#000000" />
+        </mesh>
+
+        {/* Œil droit */}
+        <mesh position={[0.2, 0.6, -0.18]}>
+          <sphereGeometry args={[0.07, 8, 8]} />
+          <meshStandardMaterial color="#000000" />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+
 // Composant de l'écran avec effet terminal
-function Screen({ onClick, hovered, setHovered }: { 
+function Screen({
+  onClick,
+  hovered,
+  setHovered,
+}: { 
   onClick: () => void
   hovered: boolean
   setHovered: (h: boolean) => void 
@@ -37,7 +197,7 @@ function Screen({ onClick, hovered, setHovered }: {
   const scanlineRef = useRef(0)
 
   useFrame((state) => {
-    // Animation scanline
+    // Animation scanline (tu pourras l'utiliser plus tard si tu veux)
     scanlineRef.current = (scanlineRef.current + 0.008) % 1
     
     // Pulsation de l'écran
@@ -147,8 +307,8 @@ function ComputerModel({ onScreenClick, isZooming }: ComputerModelProps) {
 
     if (!isZooming) {
       // Animation de flottement
-      groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.35) * 0.12
-      groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.08
+      // groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.35) * 0.12
+      // groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.08
     } else {
       // Animation de zoom vers l'écran
       zoomProgress.current += 0.018
@@ -175,7 +335,7 @@ function ComputerModel({ onScreenClick, isZooming }: ComputerModelProps) {
       />
 
       {/* === MONITEUR === */}
-      <Float speed={1.2} rotationIntensity={0.015} floatIntensity={0.04}>
+      <group position={[0, 0, 0]}>
         {/* Cadre du moniteur */}
         <RoundedBox args={[3, 2.1, 0.15]} radius={0.08} position={[0, 0.25, 0]}>
           <meshStandardMaterial 
@@ -207,19 +367,19 @@ function ComputerModel({ onScreenClick, isZooming }: ComputerModelProps) {
           <cylinderGeometry args={[0.55, 0.65, 0.04, 32]} />
           <meshStandardMaterial color="#1e293b" metalness={0.85} roughness={0.15} />
         </mesh>
-      </Float>
+      </group>
 
       {/* === CLAVIER === */}
       <group position={[0, -0.95, 0.85]}>
         <RoundedBox args={[2.2, 0.07, 0.65]} radius={0.02}>
-        <meshStandardMaterial 
-          color="#0f172a"
-          metalness={0.9}
-          roughness={0.1}
-        />
-</RoundedBox>
+          <meshStandardMaterial 
+            color="#0f172a"
+            metalness={0.9}
+            roughness={0.1}
+          />
+        </RoundedBox>
         
-        {/* Touches avec rétroéclairage */}
+        {/* Touches */}
         {Array.from({ length: 4 }).map((_, row) =>
           Array.from({ length: 14 }).map((_, col) => (
             <mesh 
@@ -242,7 +402,7 @@ function ComputerModel({ onScreenClick, isZooming }: ComputerModelProps) {
         <RoundedBox args={[0.22, 0.055, 0.38]} radius={0.04}>
           <meshStandardMaterial color="#0f172a" metalness={0.7} roughness={0.2} />
         </RoundedBox>
-        {/* LED souris */}
+        {/* “LED” souris */}
         <mesh position={[0, 0.035, -0.04]}>
           <boxGeometry args={[0.14, 0.012, 0.08]} />
           <meshStandardMaterial 
@@ -252,14 +412,8 @@ function ComputerModel({ onScreenClick, isZooming }: ComputerModelProps) {
           />
         </mesh>
       </group>
-
-      
     </group>
   )
-}
-
-interface Computer3DProps {
-  onEnterGame: () => void
 }
 
 // Composant principal
@@ -285,7 +439,7 @@ export default function Computer3D({ onEnterGame }: Computer3DProps) {
           background: '#0000',
           position: 'relative',
           zIndex: 1 
-         }}
+        }}
       >
         {/* Éclairage */}
         <ambientLight intensity={0.9} />
@@ -302,6 +456,9 @@ export default function Computer3D({ onEnterGame }: Computer3DProps) {
 
         {/* Environnement pour reflets */}
         <Environment preset="sunset" />
+
+        {/* Décor Linux */}
+        <LinuxRoom />
 
         {/* Modèle avec loader */}
         <Suspense fallback={<Loader />}>
