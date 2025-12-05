@@ -16,6 +16,7 @@ export default function GamePage() {
   const [showControls, setShowControls] = useState(false)
   const [showDebug, setShowDebug] = useState(false) // Menu debug désactivé par défaut
   const [showSnakeGame, setShowSnakeGame] = useState(false) // État pour le jeu Snake
+  const [phoneGivenToTux, setPhoneGivenToTux] = useState(false) // Le téléphone a été redonné à Tux
   const [dialogData, setDialogData] = useState<{ 
     character: string
     message: string
@@ -113,7 +114,6 @@ export default function GamePage() {
           // Dynamiquement importer et créer le jeu
           import('../game/scenes/components_snake/SnakeGameScene.ts').then(({ SnakeGameScene }) => {
             try {
-              console.log('Creating SnakeGame instance...')
               snakeGameInstance = new Phaser.Game({
                 type: Phaser.WEBGL,
                 parent: container,
@@ -137,7 +137,6 @@ export default function GamePage() {
                   antialias: false,
                 },
               })
-              console.log('SnakeGame instance created successfully')
             } catch (error) {
               console.error('Erreur lors du chargement du jeu Snake:', error)
             }
@@ -159,16 +158,13 @@ export default function GamePage() {
 
       return () => {
         window.removeEventListener('keydown', handleEsc)
-        // Détruire l'instance du jeu quand on ferme la modal
         if (snakeGameInstance) {
-          console.log('Destroying SnakeGame instance...')
           snakeGameInstance.destroy(true)
         }
       }
     }
   }, [showSnakeGame])
 
-  // Écouter l'événement showDialog émis par MainScene
   useEffect(() => {
     const handleShowDialog = (event: any) => {
       setDialogData(event.detail)
@@ -186,6 +182,16 @@ export default function GamePage() {
 
     window.addEventListener('snakeGameRequested', handleSnakeGameRequested)
     return () => window.removeEventListener('snakeGameRequested', handleSnakeGameRequested)
+  }, [])
+
+  // Écouter l'événement phoneGivenToTux émis par MainScene
+  useEffect(() => {
+    const handlePhoneGivenToTux = () => {
+      setPhoneGivenToTux(true)
+    }
+
+    window.addEventListener('phoneGivenToTux', handlePhoneGivenToTux)
+    return () => window.removeEventListener('phoneGivenToTux', handlePhoneGivenToTux)
   }, [])
 
   const handleStartGame = () => {
@@ -761,32 +767,34 @@ export default function GamePage() {
             ⏸ PAUSE [Q]
           </button>
 
-          {/* Bouton Snake à droite du bouton Pause */}
-          <button
-            onClick={() => setShowSnakeGame(true)}
-            style={{
-              padding: '10px 12px',
-              background: 'rgba(2,6,23,0.75)',
-              border: '1px solid #475569',
-              borderRadius: '8px',
-              color: '#94a3b8',
-              fontFamily: 'monospace',
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#22c55e'
-              e.currentTarget.style.color = '#22c55e'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#475569'
-              e.currentTarget.style.color = '#94a3b8'
-            }}
-            title="Ouvrir Snake (maquette)"
-          >
-            📱 SNAKE
-          </button>
+          {/* Bouton Snake à droite du bouton Pause - Affiché uniquement après avoir redonné le téléphone à Tux */}
+          {phoneGivenToTux && (
+            <button
+              onClick={() => setShowSnakeGame(true)}
+              style={{
+                padding: '10px 12px',
+                background: 'rgba(2,6,23,0.75)',
+                border: '1px solid #475569',
+                borderRadius: '8px',
+                color: '#94a3b8',
+                fontFamily: 'monospace',
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#22c55e'
+                e.currentTarget.style.color = '#22c55e'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#475569'
+                e.currentTarget.style.color = '#94a3b8'
+              }}
+              title="Jouer à Snake - Récompense de Tux !"
+            >
+              📱 SNAKE
+            </button>
+          )}
         </div>
       )}
 

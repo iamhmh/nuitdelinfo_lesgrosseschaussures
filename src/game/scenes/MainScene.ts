@@ -157,6 +157,7 @@ export class MainScene extends Phaser.Scene {
   private nearBuilding: Building | null = null
   private nearComputer: CollectibleComputer | null = null
   private nearTechnician: NPC | null = null // NPC technicien à proximité
+  private nearSpecialObject: SpecialObject | null = null // Objet spécial à proximité (Tux, téléphone...)
   
   // Suivi des PC distribués par école (max 2 par école)
   private schoolDeliveries: Map<string, SchoolDelivery> = new Map();
@@ -198,6 +199,7 @@ export class MainScene extends Phaser.Scene {
     this.nearBuilding = null
     this.nearComputer = null
     this.nearTechnician = null
+    this.nearSpecialObject = null
     
     // Réinitialiser les tableaux (important pour éviter les doublons)
     this.buildings = [];
@@ -807,9 +809,6 @@ export class MainScene extends Phaser.Scene {
         });
       }
     });
-
-    // S'assurer qu'on a bien 8 ordinateurs
-    console.log(`Créé ${this.computers.length} ordinateurs`);
 
     this.computers.forEach((computer) => {
       computer.sprite = this.add
@@ -1949,6 +1948,7 @@ export class MainScene extends Phaser.Scene {
     this.nearBuilding = null
     this.nearComputer = null
     this.nearTechnician = null
+    this.nearSpecialObject = null
     
     if (this.computers) {
       this.computers.forEach((c) => {
@@ -2283,12 +2283,22 @@ export class MainScene extends Phaser.Scene {
       return
     }
 
-    if (this.nearComputer && !this.nearComputer.collected) {
-      this.collectComputer(this.nearComputer);
-      return;
-    }
-
     if (this.nearSpecialObject) {
+      // Vérifier si on est près du téléphone (pour le ramasser)
+      if (this.nearSpecialObject.phone && this.nearSpecialObject.phone.sprite && !this.isCarryingPhone) {
+        // Vérifier la distance au téléphone
+        const phoneDist = Phaser.Math.Distance.Between(
+          this.player.x,
+          this.player.y,
+          this.nearSpecialObject.phone.sprite.x,
+          this.nearSpecialObject.phone.sprite.y
+        );
+        if (phoneDist < 60) {
+          this.handlePhoneInteraction();
+          return;
+        }
+      }
+      
       // Toujours interactif si on porte le téléphone qu'il cherche
       if (
         this.nearSpecialObject.type === "tux" &&
@@ -2297,8 +2307,8 @@ export class MainScene extends Phaser.Scene {
       ) {
         this.interactWithSpecialObject(this.nearSpecialObject);
         return;
-      }
-      // Ou si on n'a pas encore interagi
+      } 
+      // Ou si on n'a pas encore interagi avec Tux
       if (!this.nearSpecialObject.interacted) {
         this.interactWithSpecialObject(this.nearSpecialObject);
         return;
@@ -2389,7 +2399,8 @@ export class MainScene extends Phaser.Scene {
         const thankYouMessage =
           "Merci beaucoup ! 🐧 Mon Nokia 3310 me manquait tellement ! Tu es un vrai héros du Linux. Voici ta récompense !";
 
-        console.log("Tux mercie le joueur pour le téléphone");
+        // Émettre l'événement pour débloquer le jeu Snake AVANT le dialogue
+        window.dispatchEvent(new CustomEvent("phoneGivenToTux"));
 
         window.dispatchEvent(
           new CustomEvent("showDialog", {
@@ -2491,7 +2502,7 @@ export class MainScene extends Phaser.Scene {
     // Créer le sprite du téléphone
     const phoneSprite = this.add
       .image(phoneX, phoneY, "nokia_phone")
-      .setScale(2)
+      .setScale(0.8)
       .setDepth(100);
 
     // Animation de bobbing du téléphone
@@ -2549,7 +2560,7 @@ export class MainScene extends Phaser.Scene {
       const phoneSprite = tuxObj.phone.sprite;
       if (phoneSprite) {
         phoneSprite.setPosition(this.player.x + 18, this.player.y - 28);
-        phoneSprite.setScale(1.5);
+        phoneSprite.setScale(0.5);
         phoneSprite.setDepth(this.player.depth + 1);
 
         // Arrêter les animations de bobbing
@@ -2800,20 +2811,14 @@ export class MainScene extends Phaser.Scene {
 
     // Victoire si tous les 8 PC ont été distribués
     if (this.distributedCount >= 8) {
-      console.log(
-        "🎉 VICTOIRE! Tous les PC ont été distribués:",
-        this.distributedCount
-      );
       // Délai pour laisser le temps aux animations de se terminer
       this.time.delayedCall(500, () => {
-        console.log("🎉 Émission de l'événement victory...");
         this.events.emit("victory");
         // Backup: appeler directement UIScene si l'événement ne fonctionne pas
         const uiScene = this.scene.get("UIScene") as Phaser.Scene & {
           showVictory?: () => void;
         };
         if (uiScene && typeof uiScene.showVictory === "function") {
-          console.log("🎉 Appel direct de UIScene.showVictory()");
           uiScene.showVictory();
         }
       });

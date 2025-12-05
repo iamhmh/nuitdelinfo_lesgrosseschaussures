@@ -64,14 +64,6 @@ export class SnakeGame {
       fontStyle: "bold",
     });
 
-    console.log("SnakeGame constructor: ", {
-      x,
-      y,
-      width,
-      height,
-      cellSize: this.cellSize,
-    });
-
     // Initialiser le jeu
     this.initializeGame();
 
@@ -250,9 +242,6 @@ export class SnakeGame {
 
   private endGame(): void {
     this.gameRunning = false;
-    console.log("Game Over! Score:", this.score);
-    
-    // Appeler le callback de game over
     if (this.onGameOver) {
       this.onGameOver(this.score);
     }

@@ -21,7 +21,6 @@ export class SnakeGameScene extends Phaser.Scene {
   }
 
   create(): void {
-    console.log("SnakeGameScene.create() called");
     this.gameStarted = false;
     this.snakeGame = null;
     this.gameOverContainer = null;
@@ -184,8 +183,6 @@ export class SnakeGameScene extends Phaser.Scene {
       this.screenHeight,
       (score: number) => this.showGameOver(score)
     );
-
-    console.log("SnakeGame started!");
   }
 
   /**
@@ -453,7 +450,6 @@ export class SnakeGameScene extends Phaser.Scene {
   }
 
   private stopGame(): void {
-    console.log("Stopping SnakeGameScene");
     this.scene.stop("SnakeGameScene");
   }
 }
