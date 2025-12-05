@@ -185,6 +185,7 @@ export class MainScene extends Phaser.Scene {
     this.setupCamera()
     this.createAnimations()
     this.setupEvents()
+    this.setupPauseEvents() // Écouter les événements pause/restart de React
     this.createDebugUI()
     
     this.physics.world.setBounds(0, 0, this.mapWidth, this.mapHeight)
@@ -215,7 +216,46 @@ export class MainScene extends Phaser.Scene {
       this.physics.add.collider(this.player, this.treeColliders)
     }
     
+    // Collision avec les NPCs
+    this.npcs.forEach(npc => {
+      if (npc.sprite && npc.sprite.body) {
+        this.physics.add.collider(this.player, npc.sprite)
+      }
+    })
+    
     // Les collisions avec les voitures sont gérées manuellement dans updateCars()
+  }
+  
+  /**
+   * Configure les événements de pause/restart depuis React
+   */
+  private setupPauseEvents(): void {
+    // Écouter l'événement de pause depuis React
+    const handlePause = (e: CustomEvent) => {
+      if (e.detail.paused) {
+        this.scene.pause()
+        this.scene.pause('UIScene')
+      } else {
+        this.scene.resume()
+        this.scene.resume('UIScene')
+      }
+    }
+    
+    // Écouter l'événement de restart depuis React
+    const handleRestart = () => {
+      this.scene.stop('UIScene')
+      this.scene.stop('MainScene')
+      this.scene.start('BootScene')
+    }
+    
+    window.addEventListener('game-pause', handlePause as EventListener)
+    window.addEventListener('game-restart', handleRestart)
+    
+    // Nettoyer les listeners quand la scène est détruite
+    this.events.on('shutdown', () => {
+      window.removeEventListener('game-pause', handlePause as EventListener)
+      window.removeEventListener('game-restart', handleRestart)
+    })
   }
 
   // ==================== TERRAIN ====================
@@ -480,8 +520,9 @@ export class MainScene extends Phaser.Scene {
     this.placeBuilding(48, 10, 'enterprise', '🏢 InfoSys Global')
     this.placeBuilding(54, 10, 'office', '🏢 Innovation Hub')
     
-    // ========== ZONE D: ATELIER + RÉSIDENTIEL (milieu gauche) ==========
-    this.placeBuilding(8, 24, 'workshop', '🔧 Atelier NIRD - Reconditionnement Linux')
+    // ========== ZONE D: ATELIER AU CENTRE + RÉSIDENTIEL ==========
+    // Atelier NIRD au centre de la carte (entre les 4 routes)
+    this.placeBuilding(28, 24, 'workshop', '🔧 Atelier NIRD - Reconditionnement Linux')
     this.placeBuilding(3, 22, 'house', '🏠 Maison Rose')
     this.placeBuilding(15, 22, 'apartment', '🏢 Résidence du Parc')
     
@@ -553,30 +594,49 @@ export class MainScene extends Phaser.Scene {
 
   // ==================== ORDINATEURS ====================
   private createComputers(): void {
+    // On place exactement 8 ordinateurs devant les entreprises/bureaux
     const techBuildings = this.buildings.filter(b => 
       b.type === 'enterprise' || b.type === 'office'
     )
     
-    techBuildings.forEach(building => {
-      const numComputers = 2 + Math.floor(Math.random() * 2)
-      for (let i = 0; i < numComputers; i++) {
-        // Position devant le bâtiment (sur l'herbe)
-        const offsetX = (Math.random() - 0.5) * 100
-        const offsetY = 40 + Math.random() * 40
-        
-        const compX = building.x + offsetX
-        const compY = building.y + offsetY
-        
-        // Vérifier qu'on n'est pas sur la route
-        if (!this.isOnRoad(compX, compY)) {
-          this.computers.push({
-            x: compX,
-            y: compY,
-            collected: false,
-          })
-        }
+    // Positions fixes pour les 8 ordinateurs (1 par bâtiment tech, on en a 7, donc 2 pour le premier)
+    const computerPositions: { buildingIndex: number; offsetX: number; offsetY: number }[] = [
+      { buildingIndex: 0, offsetX: -30, offsetY: 50 },
+      { buildingIndex: 0, offsetX: 30, offsetY: 60 },
+      { buildingIndex: 1, offsetX: 0, offsetY: 55 },
+      { buildingIndex: 2, offsetX: -20, offsetY: 50 },
+      { buildingIndex: 3, offsetX: 10, offsetY: 55 },
+      { buildingIndex: 4, offsetX: -10, offsetY: 50 },
+      { buildingIndex: 5, offsetX: 20, offsetY: 55 },
+      { buildingIndex: 6, offsetX: 0, offsetY: 50 },
+    ]
+    
+    computerPositions.forEach((pos) => {
+      const building = techBuildings[pos.buildingIndex % techBuildings.length]
+      if (!building) return
+      
+      const compX = building.x + pos.offsetX
+      const compY = building.y + pos.offsetY
+      
+      // Vérifier qu'on n'est pas sur la route
+      if (!this.isOnRoad(compX, compY)) {
+        this.computers.push({
+          x: compX,
+          y: compY,
+          collected: false,
+        })
+      } else {
+        // Si sur la route, décaler un peu
+        this.computers.push({
+          x: compX,
+          y: compY + 30,
+          collected: false,
+        })
       }
     })
+    
+    // S'assurer qu'on a bien 8 ordinateurs
+    console.log(`Créé ${this.computers.length} ordinateurs`)
     
     this.computers.forEach(computer => {
       computer.sprite = this.add.image(computer.x, computer.y, 'computer_old')
@@ -692,11 +752,17 @@ export class MainScene extends Phaser.Scene {
     
     fixedNPCPositions.forEach(pos => {
       const type = Phaser.Math.RND.pick(npcTypes)
-      const sprite = this.add.sprite(
+      const sprite = this.physics.add.sprite(
         pos.tx * this.tileSize + 32,
         pos.ty * this.tileSize + 32,
         `npc_${type}`
       ).setOrigin(0.5, 1).setScale(1.1).setDepth(pos.ty * this.tileSize + 100)
+      
+      // Rendre le sprite immobile (collision statique)
+      const body = sprite.body as Phaser.Physics.Arcade.Body
+      body.setImmovable(true)
+      body.setSize(24, 16)
+      body.setOffset(4, 48)
       
       this.npcs.push({
         sprite,
@@ -720,10 +786,16 @@ export class MainScene extends Phaser.Scene {
       const startX = pos.tx * this.tileSize + 32
       const startY = pos.ty * this.tileSize + 32
       
-      const sprite = this.add.sprite(startX, startY, `npc_${type}`)
+      const sprite = this.physics.add.sprite(startX, startY, `npc_${type}`)
         .setOrigin(0.5, 1)
         .setScale(1.1)
         .setDepth(startY + 100)
+      
+      // Rendre le sprite immobile (collision)
+      const body = sprite.body as Phaser.Physics.Arcade.Body
+      body.setImmovable(true)
+      body.setSize(24, 16)
+      body.setOffset(4, 48)
       
       const targetX = pos.targetTx * this.tileSize + 32
       const direction = targetX > startX ? 'right' : 'left'
@@ -744,11 +816,17 @@ export class MainScene extends Phaser.Scene {
     const workshop = this.buildings.find(b => b.type === 'workshop')
     if (workshop) {
       for (let i = 0; i < 2; i++) {
-        const sprite = this.add.sprite(
+        const sprite = this.physics.add.sprite(
           workshop.x + (i === 0 ? -60 : 60),
           workshop.y + 20,
           'npc_technician'
         ).setOrigin(0.5, 1).setScale(1.1).setDepth(workshop.y + 100)
+        
+        // Rendre le sprite immobile (collision)
+        const body = sprite.body as Phaser.Physics.Arcade.Body
+        body.setImmovable(true)
+        body.setSize(24, 16)
+        body.setOffset(4, 48)
         
         this.npcs.push({
           sprite,

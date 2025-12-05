@@ -83,7 +83,7 @@ export class UIScene extends Phaser.Scene {
     bg.strokeRoundedRect(0, 0, panelWidth, panelHeight, 12)
     
     // Titre
-    const title = this.add.text(panelWidth / 2, 15, '🌿 MISSION NIRD', {
+    const title = this.add.text(panelWidth / 2, 15, '📱 Recondi_Tech.apk', {
       fontSize: '16px',
       color: '#22c55e',
       fontStyle: 'bold',
@@ -192,7 +192,7 @@ export class UIScene extends Phaser.Scene {
     
     // Instructions
     const text = this.add.text(-90, 45, [
-      '🎮 CONTRÔLES',
+      '🎮 CONTROLES',
       '↑←↓→ ou WASD : Déplacer',
       'E : Interagir',
     ].join('\n'), {
@@ -254,6 +254,7 @@ export class UIScene extends Phaser.Scene {
     })
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private showInteractHint(_building: { name: string; type: string }): void {
     this.interactHint.setVisible(true)
   }
