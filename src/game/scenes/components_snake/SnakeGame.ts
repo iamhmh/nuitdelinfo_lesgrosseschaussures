@@ -52,8 +52,8 @@ export class SnakeGame {
     this.snakeGraphics = scene.add.graphics();
     this.foodGraphics = scene.add.graphics();
 
-    // Score text
-    this.scoreText = scene.add.text(x + 5, y + 5, "Score: 0", {
+    // Score text (affiche juste le nombre avec zéros)
+    this.scoreText = scene.add.text(x + 5, y + 5, "0000", {
       fontSize: "10px",
       color: "#22c55e",
       fontFamily: "monospace",
@@ -202,8 +202,8 @@ export class SnakeGame {
 
       // Vérifier si on a mangé la nourriture
       if (this.food && newHead.x === this.food.x && newHead.y === this.food.y) {
-        this.score += 10;
-        this.scoreText.setText(`Score: ${this.score}`);
+        this.score += 1;
+        this.scoreText.setText(this.score.toString().padStart(4, "0"));
         this.spawnFood();
       } else {
         // Retirer la queue si on n'a pas mangé
@@ -256,7 +256,9 @@ export class SnakeGame {
 
   private endGame(): void {
     this.gameRunning = false;
-    this.gameOverText.setText(`GAME OVER\nScore: ${this.score}`);
+    this.gameOverText.setText(
+      `GAME OVER\n${this.score.toString().padStart(4, "0")}`
+    );
     this.gameOverText.setVisible(true);
   }
 

@@ -2,7 +2,7 @@
  * Scène du jeu Snake sur Nokia 3310
  */
 import Phaser from "phaser";
-import { SnakeGame } from "../scene/components_snake/SnakeGame";
+import { SnakeGame } from "./SnakeGame";
 
 export class SnakeGameScene extends Phaser.Scene {
   private phone!: Phaser.GameObjects.Image;

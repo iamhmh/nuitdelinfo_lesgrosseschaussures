@@ -75,7 +75,7 @@ export default function GamePage() {
         const container = document.getElementById('snake-game-container')
         if (container) {
           // Dynamiquement importer et créer le jeu
-          import('../game/scenes/SnakeGameScene.ts').then(({ SnakeGameScene }) => {
+          import('../game/scenes/components_snake/SnakeGameScene.ts').then(({ SnakeGameScene }) => {
             try {
               console.log('Creating SnakeGame instance...')
               snakeGameInstance = new Phaser.Game({
