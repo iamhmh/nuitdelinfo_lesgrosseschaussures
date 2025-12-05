@@ -1,7 +1,8 @@
-import Phaser from "phaser";
-import { BootScene } from "./scenes/BootScene.ts";
-import { MainScene } from "./scenes/MainScene.ts";
-import { UIScene } from "./scenes/UIScene.ts";
+import Phaser from 'phaser'
+import { BootScene } from './scenes/BootScene.ts'
+import { MainScene } from './scenes/MainScene.ts'
+import { UIScene } from './scenes/UIScene.ts'
+import { WorkshopScene } from './scenes/WorkshopScene.ts'
 
 export const createPhaserConfig = (
   parent: HTMLElement
@@ -18,7 +19,7 @@ export const createPhaserConfig = (
       debug: false,
     },
   },
-  scene: [BootScene, MainScene, UIScene],
+  scene: [BootScene, MainScene, UIScene, WorkshopScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

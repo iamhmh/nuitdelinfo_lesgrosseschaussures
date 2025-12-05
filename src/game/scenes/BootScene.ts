@@ -358,54 +358,167 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(uw / 2 - 40, 48, 80, 10)
     g.generateTexture('building_university', uw, uh)
     
-    // ATELIER NIRD - Hangar éco 3x3 tiles = 192x192
+    // ATELIER NIRD - Bâtiment moderne éco 3x3 tiles = 192x192
     const ww = 192, wh = 192
     g.clear()
-    // Hangar bois
-    g.fillStyle(0xb8956a)
-    g.fillRect(0, 50, ww, wh - 50)
-    // Planches
-    for (let i = 0; i < 14; i++) {
-      g.fillStyle(i % 2 === 0 ? 0xa88550 : 0xc8a57a)
-      g.fillRect(0, 50 + i * 10, ww, 9)
+    
+    // === FONDATION ===
+    g.fillStyle(0x3a3a3a)
+    g.fillRect(5, wh - 8, ww - 10, 8)
+    
+    // === STRUCTURE PRINCIPALE (style industriel moderne) ===
+    // Mur principal - béton texturé
+    g.fillStyle(0x5a6a7a)
+    g.fillRect(8, 55, ww - 16, wh - 63)
+    // Texture béton
+    for (let i = 0; i < 8; i++) {
+      g.fillStyle(i % 2 === 0 ? 0x4a5a6a : 0x6a7a8a)
+      g.fillRect(8, 55 + i * 16, ww - 16, 15)
     }
-    // Toit vert avec panneaux solaires
-    g.fillStyle(0x4a8a4a)
+    
+    // Bordure métallique verte
+    g.fillStyle(0x22c55e)
+    g.fillRect(5, 52, ww - 10, 6)
+    g.fillRect(5, 52, 5, wh - 60)
+    g.fillRect(ww - 10, 52, 5, wh - 60)
+    
+    // === TOIT VÉGÉTALISÉ ===
+    g.fillStyle(0x2d5a2d)
     g.beginPath()
-    g.moveTo(0, 50)
-    g.lineTo(ww / 2, 12)
-    g.lineTo(ww, 50)
+    g.moveTo(0, 55)
+    g.lineTo(ww / 2, 8)
+    g.lineTo(ww, 55)
     g.closePath()
     g.fillPath()
-    // Panneaux solaires
+    // Herbe sur le toit
+    g.fillStyle(0x4a8a4a)
+    for (let i = 0; i < 12; i++) {
+      const tx = 20 + i * 13
+      const ty = 45 - Math.abs(tx - ww/2) * 0.3
+      g.fillCircle(tx, ty, 6 + Math.random() * 3)
+    }
+    
+    // === PANNEAUX SOLAIRES (plus réalistes) ===
+    // Panneau gauche
     g.fillStyle(0x1a2a4a)
-    g.fillRect(28, 28, 45, 14)
-    g.fillRect(118, 28, 45, 14)
-    // Grande porte atelier
-    g.fillStyle(0x5a4a3a)
-    g.fillRect(15, 70, 75, wh - 70)
-    g.fillStyle(0x6a5a4a)
-    g.fillRect(20, 75, 65, wh - 80)
-    g.fillStyle(0x87ceeb)
-    g.fillRect(25, 80, 26, 28)
-    g.fillRect(55, 80, 26, 28)
-    // Porte bureau
-    g.fillStyle(0x5a4a3a)
-    g.fillRect(120, 100, 50, wh - 100)
-    g.fillStyle(0x87ceeb)
-    g.fillRect(126, 106, 38, 38)
-    // Enseigne NIRD
-    g.fillStyle(0x1a4a1a)
-    g.fillRect(95, 58, 55, 25)
+    g.fillRect(22, 22, 55, 22)
+    g.fillStyle(0x3a5a8a)
+    for (let row = 0; row < 2; row++) {
+      for (let col = 0; col < 4; col++) {
+        g.fillRect(24 + col * 13, 24 + row * 10, 11, 8)
+      }
+    }
+    // Panneau droit
+    g.fillStyle(0x1a2a4a)
+    g.fillRect(115, 22, 55, 22)
+    g.fillStyle(0x3a5a8a)
+    for (let row = 0; row < 2; row++) {
+      for (let col = 0; col < 4; col++) {
+        g.fillRect(117 + col * 13, 24 + row * 10, 11, 8)
+      }
+    }
+    
+    // === GRANDE PORTE ATELIER (style hangar) ===
+    g.fillStyle(0x3a4a3a)
+    g.fillRect(12, 75, 85, wh - 83)
+    // Cadre métallique
     g.fillStyle(0x22c55e)
-    g.fillRect(98, 61, 49, 19)
-    // Tux
-    g.fillStyle(0xffa500)
-    g.fillCircle(175, 70, 12)
+    g.fillRect(12, 75, 85, 4)
+    g.fillRect(12, 75, 4, wh - 83)
+    g.fillRect(93, 75, 4, wh - 83)
+    // Lamelles de la porte
+    for (let i = 0; i < 7; i++) {
+      g.fillStyle(i % 2 === 0 ? 0x4a5a4a : 0x5a6a5a)
+      g.fillRect(16, 80 + i * 14, 77, 13)
+    }
+    // Fenêtres de la porte
+    g.fillStyle(0x87ceeb)
+    g.fillRect(22, 85, 30, 22)
+    g.fillRect(58, 85, 30, 22)
+    g.fillStyle(0x5a8aba)
+    g.fillRect(22, 95, 30, 2)
+    g.fillRect(58, 95, 30, 2)
+    
+    // === PORTE BUREAU ===
+    g.fillStyle(0x4a3a2a)
+    g.fillRect(110, 105, 55, wh - 113)
+    g.fillStyle(0x22c55e)
+    g.fillRect(110, 105, 55, 4)
+    // Vitre
+    g.fillStyle(0x87ceeb)
+    g.fillRect(118, 115, 40, 45)
+    g.fillStyle(0x5a8aba)
+    g.fillRect(137, 115, 2, 45)
+    
+    // === ENSEIGNE NIRD (plus visible) ===
+    // Fond enseigne
+    g.fillStyle(0x1a1a1a)
+    g.fillRect(ww/2 - 45, 58, 90, 30)
+    // Bordure lumineuse
+    g.fillStyle(0x22c55e)
+    g.fillRect(ww/2 - 47, 56, 94, 3)
+    g.fillRect(ww/2 - 47, 87, 94, 3)
+    g.fillRect(ww/2 - 47, 56, 3, 34)
+    g.fillRect(ww/2 + 44, 56, 3, 34)
+    // Texte NIRD (stylisé avec des rectangles)
+    g.fillStyle(0x22c55e)
+    // N
+    g.fillRect(ww/2 - 38, 63, 4, 18)
+    g.fillRect(ww/2 - 38, 63, 12, 4)
+    g.fillRect(ww/2 - 30, 63, 4, 18)
+    // I
+    g.fillRect(ww/2 - 20, 63, 4, 18)
+    // R
+    g.fillRect(ww/2 - 10, 63, 4, 18)
+    g.fillRect(ww/2 - 10, 63, 12, 4)
+    g.fillRect(ww/2 - 10, 71, 12, 4)
+    g.fillRect(ww/2 - 2, 63, 4, 12)
+    // D
+    g.fillRect(ww/2 + 8, 63, 4, 18)
+    g.fillRect(ww/2 + 8, 63, 10, 4)
+    g.fillRect(ww/2 + 8, 77, 10, 4)
+    g.fillRect(ww/2 + 14, 67, 4, 10)
+    
+    // === LOGO TUX (mascotte Linux) ===
+    // Corps
     g.fillStyle(0x000000)
-    g.fillCircle(175, 70, 8)
+    g.fillEllipse(170, 130, 24, 30)
+    // Ventre
+    g.fillStyle(0xf0f0f0)
+    g.fillEllipse(170, 135, 16, 20)
+    // Yeux
+    g.fillStyle(0xffffff)
+    g.fillCircle(164, 118, 6)
+    g.fillCircle(176, 118, 6)
+    g.fillStyle(0x000000)
+    g.fillCircle(165, 118, 3)
+    g.fillCircle(177, 118, 3)
+    // Bec
     g.fillStyle(0xffa500)
-    g.fillCircle(175, 70, 5)
+    g.fillTriangle(170, 122, 164, 128, 176, 128)
+    // Pattes
+    g.fillStyle(0xffa500)
+    g.fillRect(162, 150, 8, 6)
+    g.fillRect(172, 150, 8, 6)
+    
+    // === ÉLÉMENTS DÉCORATIFS ===
+    // Plantes en pot
+    g.fillStyle(0x8b4513)
+    g.fillRect(4, wh - 25, 14, 17)
+    g.fillStyle(0x4a8a4a)
+    g.fillCircle(11, wh - 30, 10)
+    
+    g.fillStyle(0x8b4513)
+    g.fillRect(ww - 18, wh - 25, 14, 17)
+    g.fillStyle(0x4a8a4a)
+    g.fillCircle(ww - 11, wh - 30, 10)
+    
+    // Lampe extérieure
+    g.fillStyle(0x333333)
+    g.fillRect(105, 90, 3, 12)
+    g.fillStyle(0xffdd44)
+    g.fillCircle(106, 88, 5)
+    
     g.generateTexture('building_workshop', ww, wh)
     
     // MAISON (neutre) 2x2 tiles = 128x128
@@ -552,12 +665,6 @@ export class BootScene extends Phaser.Scene {
     
     carColors.forEach(car => {
       g.clear()
-      
-      // Ombre au sol
-      g.fillStyle(0x000000)
-      g.setAlpha(0.25)
-      g.fillEllipse(40, 58, 60, 16)
-      g.setAlpha(1)
       
       // === VUE 3/4 ARRIÈRE - Voiture avec perspective ===
       

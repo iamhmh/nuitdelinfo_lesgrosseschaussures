@@ -12,7 +12,8 @@ export default function GamePage() {
   const [isPaused, setIsPaused] = useState(false)
   const [showHowToPlay, setShowHowToPlay] = useState(false)
   const [showControls, setShowControls] = useState(false)
-  const [showSnakeGame, setShowSnakeGame] = useState(false)
+  const [showDebug, setShowDebug] = useState(false) // Menu debug désactivé par défaut
+  const [showSnakeGame, setShowSnakeGame] = useState(false) // État pour le jeu Snake
 
   // Chargement réel de 0 à 100%
   useEffect(() => {
@@ -61,6 +62,12 @@ export default function GamePage() {
     setIsPaused(false)
     setShowControls(false)
     window.dispatchEvent(new CustomEvent('game-restart'))
+  }
+
+  const handleToggleDebug = () => {
+    const newValue = !showDebug
+    setShowDebug(newValue)
+    window.dispatchEvent(new CustomEvent('game-toggle-debug', { detail: { visible: newValue } }))
   }
 
   const [isStarting, setIsStarting] = useState(false)
@@ -625,6 +632,9 @@ export default function GamePage() {
                   {/* Boutons */}
                   <div style={{ padding: '32px 24px' }}>
                     <MenuButton onClick={handleResume} variant="primary">▶ REPRENDRE</MenuButton>
+                    <MenuButton onClick={handleToggleDebug}>
+                      {showDebug ? '🛠️ MASQUER DEBUG' : '🛠️ AFFICHER DEBUG'}
+                    </MenuButton>
                     <MenuButton onClick={handleRestart}>↻ REJOUER</MenuButton>
                     <MenuButton onClick={() => setShowControls(true)}>🎮 COMMANDES</MenuButton>
                     <MenuButton onClick={() => navigate('/a-propos')}>ℹ À PROPOS</MenuButton>

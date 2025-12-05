@@ -19,6 +19,13 @@ interface CollectibleComputer {
   interactIcon?: Phaser.GameObjects.Image
 }
 
+// Compteur de PC distribués par école
+interface SchoolDelivery {
+  buildingName: string
+  count: number
+  maxCount: number
+}
+
 interface NPC {
   sprite: Phaser.GameObjects.Sprite
   type: 'citizen' | 'woman' | 'technician'
@@ -80,7 +87,7 @@ interface OccupiedZone {
 
 export class MainScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite
-  private playerSpeed: number = 180
+  private playerSpeed: number = 280
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key }
   private interactKey!: Phaser.Input.Keyboard.Key
@@ -121,6 +128,17 @@ export class MainScene extends Phaser.Scene {
   private inventory: number = 0
   private nearBuilding: Building | null = null
   private nearComputer: CollectibleComputer | null = null
+  
+  // Suivi des PC distribués par école (max 2 par école)
+  private schoolDeliveries: Map<string, SchoolDelivery> = new Map()
+  
+  // Sprite du PC porté par le joueur (bras droit)
+  private carriedPCSprite: Phaser.GameObjects.Image | null = null
+  // Sprite du 2e PC porté par le joueur (bras gauche)
+  private carriedPCSprite2: Phaser.GameObjects.Image | null = null
+  
+  // État de l'atelier intérieur
+  private isInsideWorkshop: boolean = false
   
   // Debug
   private debugText!: Phaser.GameObjects.Text
@@ -163,8 +181,14 @@ export class MainScene extends Phaser.Scene {
     this.trafficPhase = 'h_green'
     this.trafficTimer = 0
     
-    // Réinitialiser le debug
-    this.debugGridVisible = true
+    // Réinitialiser le debug (masqué par défaut)
+    this.debugGridVisible = false
+    
+    // Réinitialiser les nouvelles propriétés
+    this.schoolDeliveries = new Map()
+    this.carriedPCSprite = null
+    this.carriedPCSprite2 = null
+    this.isInsideWorkshop = false
   }
 
   create(): void {
@@ -186,6 +210,7 @@ export class MainScene extends Phaser.Scene {
     this.createAnimations()
     this.setupEvents()
     this.setupPauseEvents() // Écouter les événements pause/restart de React
+    this.setupWorkshopEvents() // Écouter le retour de WorkshopScene
     this.createDebugUI()
     
     this.physics.world.setBounds(0, 0, this.mapWidth, this.mapHeight)
@@ -199,6 +224,15 @@ export class MainScene extends Phaser.Scene {
         distributed: this.distributedCount,
         inventory: this.inventory
       })
+    })
+  }
+  
+  /**
+   * Configure les événements de retour de WorkshopScene
+   */
+  private setupWorkshopEvents(): void {
+    this.events.on('workshopComplete', (data: { pcsRepaired: number, collectedCount: number, reconditionedCount: number, distributedCount: number }) => {
+      this.onWorkshopComplete(data)
     })
   }
   
@@ -812,30 +846,28 @@ export class MainScene extends Phaser.Scene {
       })
     })
     
-    // Techniciens près de l'atelier NIRD
+    // Technicien près de l'atelier NIRD (un seul)
     const workshop = this.buildings.find(b => b.type === 'workshop')
     if (workshop) {
-      for (let i = 0; i < 2; i++) {
-        const sprite = this.physics.add.sprite(
-          workshop.x + (i === 0 ? -60 : 60),
-          workshop.y + 20,
-          'npc_technician'
-        ).setOrigin(0.5, 1).setScale(1.1).setDepth(workshop.y + 100)
-        
-        // Rendre le sprite immobile (collision)
-        const body = sprite.body as Phaser.Physics.Arcade.Body
-        body.setImmovable(true)
-        body.setSize(24, 16)
-        body.setOffset(4, 48)
-        
-        this.npcs.push({
-          sprite,
-          type: 'technician',
-          isMoving: false,
-          speed: 0,
-          direction: i === 0 ? 'right' : 'left'
-        })
-      }
+      const sprite = this.physics.add.sprite(
+        workshop.x + 60,
+        workshop.y + 20,
+        'npc_technician'
+      ).setOrigin(0.5, 1).setScale(1.1).setDepth(workshop.y + 100)
+      
+      // Rendre le sprite immobile (collision)
+      const body = sprite.body as Phaser.Physics.Arcade.Body
+      body.setImmovable(true)
+      body.setSize(24, 16)
+      body.setOffset(4, 48)
+      
+      this.npcs.push({
+        sprite,
+        type: 'technician',
+        isMoving: false,
+        speed: 0,
+        direction: 'left'
+      })
     }
   }
 
@@ -1021,6 +1053,119 @@ export class MainScene extends Phaser.Scene {
       const py = pos.ty * this.tileSize + 64
       this.add.image(px, py, 'sign').setOrigin(0.5, 1).setDepth(py)
     })
+    
+    // Arrêts de bus
+    const busStopPositions = [
+      { tx: 23, ty: 14 },  // Arrêt route H15
+      { tx: 37, ty: 14 },
+      { tx: 23, ty: 33 },  // Arrêt route H30
+      { tx: 37, ty: 33 },
+    ]
+    busStopPositions.forEach(pos => {
+      const px = pos.tx * this.tileSize + 32
+      const py = pos.ty * this.tileSize + 64
+      this.add.image(px, py, 'bus_stop').setOrigin(0.5, 1).setDepth(py)
+    })
+    
+    // Boîtes aux lettres près des maisons
+    const mailboxPositions = [
+      { tx: 5, ty: 23 },
+      { tx: 17, ty: 23 },
+      { tx: 28, ty: 23 },
+      { tx: 54, ty: 25 },
+    ]
+    mailboxPositions.forEach(pos => {
+      if (!this.isTileOnRoadOrBuilding(pos.tx, pos.ty)) {
+        const px = pos.tx * this.tileSize + 32
+        const py = pos.ty * this.tileSize + 48
+        this.add.image(px, py, 'mailbox').setOrigin(0.5, 1).setDepth(py)
+      }
+    })
+    
+    // Parcs avec arbres groupés et bancs
+    this.createParks()
+  }
+  
+  /**
+   * Crée des parcs avec des zones de verdure groupées
+   */
+  private createParks(): void {
+    // Parc dans la zone A (haut gauche)
+    this.createParkZone(12, 5, 'Parc du Numérique')
+    
+    // Parc dans la zone I (bas droite)
+    this.createParkZone(52, 37, 'Jardins Linux')
+    
+    // Mini-parcs près des écoles
+    this.createMiniPark(7, 42)
+    this.createMiniPark(16, 42)
+    this.createMiniPark(48, 42)
+  }
+  
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private createParkZone(centerTx: number, centerTy: number, _name: string): void {
+    const centerX = centerTx * this.tileSize + 32
+    const centerY = centerTy * this.tileSize + 32
+    
+    // Cercle d'arbres autour
+    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
+      const tx = centerTx + Math.round(Math.cos(angle) * 3)
+      const ty = centerTy + Math.round(Math.sin(angle) * 2)
+      if (!this.isTileOnRoadOrBuilding(tx, ty)) {
+        const px = tx * this.tileSize + 32
+        const py = ty * this.tileSize + 64
+        const treeType = Math.random() > 0.5 ? 'tree' : 'tree_pine'
+        this.add.image(px, py, treeType)
+          .setOrigin(0.5, 1)
+          .setDepth(py)
+          .setScale(0.8 + Math.random() * 0.3)
+      }
+    }
+    
+    // Bancs au centre
+    this.add.image(centerX - 30, centerY + 20, 'bench').setOrigin(0.5, 1).setDepth(centerY + 20)
+    this.add.image(centerX + 30, centerY + 20, 'bench').setOrigin(0.5, 1).setDepth(centerY + 20)
+    
+    // Fleurs autour
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2
+      const distance = 40 + Math.random() * 30
+      const fx = centerX + Math.cos(angle) * distance
+      const fy = centerY + Math.sin(angle) * distance
+      const flowerType = Math.random() > 0.5 ? 'flower' : 'flower_yellow'
+      this.add.image(fx, fy, flowerType)
+        .setOrigin(0.5, 1)
+        .setDepth(fy - 10)
+        .setScale(0.5 + Math.random() * 0.3)
+    }
+  }
+  
+  private createMiniPark(tx: number, ty: number): void {
+    if (this.isTileOnRoadOrBuilding(tx, ty)) return
+    
+    const px = tx * this.tileSize + 32
+    const py = ty * this.tileSize + 48
+    
+    // Arbre central
+    this.add.image(px, py + 16, Math.random() > 0.5 ? 'tree' : 'tree_pine')
+      .setOrigin(0.5, 1)
+      .setDepth(py + 16)
+      .setScale(0.7)
+    
+    // Buissons autour
+    this.add.image(px - 25, py + 10, 'bush').setOrigin(0.5, 1).setDepth(py + 10).setScale(0.5)
+    this.add.image(px + 25, py + 10, 'bush').setOrigin(0.5, 1).setDepth(py + 10).setScale(0.5)
+    
+    // Quelques fleurs
+    for (let i = 0; i < 4; i++) {
+      const angle = (i / 4) * Math.PI * 2
+      const fx = px + Math.cos(angle) * 20
+      const fy = py + Math.sin(angle) * 15
+      this.add.image(fx, fy, i % 2 === 0 ? 'flower' : 'flower_yellow')
+        .setOrigin(0.5, 1)
+        .setDepth(fy - 5)
+        .setScale(0.4)
+    }
   }
 
   // ==================== UTILITAIRES ====================
@@ -1131,6 +1276,23 @@ export class MainScene extends Phaser.Scene {
       backgroundColor: '#000000cc',
       padding: { x: 10, y: 6 }
     }).setScrollFactor(0).setDepth(9999)
+    
+    // Masquer le debug par défaut
+    this.debugText.setVisible(false)
+    this.debugGridContainer.setVisible(false)
+    
+    // Écouter l'événement pour toggle le debug depuis le menu pause
+    const handleToggleDebug = (e: CustomEvent) => {
+      this.debugGridVisible = e.detail.visible
+      this.debugText.setVisible(e.detail.visible)
+      this.debugGridContainer.setVisible(e.detail.visible)
+    }
+    window.addEventListener('game-toggle-debug', handleToggleDebug as EventListener)
+    
+    // Nettoyer le listener quand la scène est détruite
+    this.events.on('shutdown', () => {
+      window.removeEventListener('game-toggle-debug', handleToggleDebug as EventListener)
+    })
   }
 
   private createDebugGrid(): void {
@@ -1366,6 +1528,9 @@ export class MainScene extends Phaser.Scene {
   private handleMovement(): void {
     if (!this.player || !this.player.body || !this.player.active) return
     
+    // Ne pas bouger si on est dans l'atelier
+    if (this.isInsideWorkshop) return
+    
     const body = this.player.body as Phaser.Physics.Arcade.Body
     body.setVelocity(0)
     
@@ -1398,6 +1563,20 @@ export class MainScene extends Phaser.Scene {
     } else {
       this.player.stop()
       this.player.setTexture('player_idle')
+    }
+    
+    // Mettre à jour la position du/des PC porté(s)
+    if (this.carriedPCSprite && this.carriedPCSprite.active) {
+      // PC côté droit
+      const offsetX = this.player.flipX ? -18 : 18
+      this.carriedPCSprite.setPosition(this.player.x + offsetX, this.player.y - 28)
+      this.carriedPCSprite.setDepth(this.player.depth + 1)
+    }
+    if (this.carriedPCSprite2 && this.carriedPCSprite2.active) {
+      // PC côté gauche (opposé)
+      const offsetX = this.player.flipX ? 18 : -18
+      this.carriedPCSprite2.setPosition(this.player.x + offsetX, this.player.y - 28)
+      this.carriedPCSprite2.setDepth(this.player.depth + 1)
     }
   }
 
@@ -1454,11 +1633,14 @@ export class MainScene extends Phaser.Scene {
       if (!car.sprite || !car.sprite.active) return
       
       // Vérifier si la voiture doit s'arrêter au feu rouge
-      const mustStop = this.shouldCarStop(car)
+      const mustStopAtLight = this.shouldCarStop(car)
       
-      // Vitesse actuelle (avec arrêt progressif aux feux)
+      // Vérifier si le joueur est devant la voiture
+      const mustStopForPlayer = this.isPlayerInFrontOfCar(car)
+      
+      // Vitesse actuelle (arrêt pour feu rouge ou piéton)
       let currentSpeed = car.baseSpeed
-      if (mustStop) {
+      if (mustStopAtLight || mustStopForPlayer) {
         currentSpeed = 0
       }
       
@@ -1481,6 +1663,52 @@ export class MainScene extends Phaser.Scene {
     
     // Vérifier les collisions manuellement avec le joueur
     this.checkCarCollisions()
+  }
+  
+  /**
+   * Vérifie si le joueur est devant la voiture (dans sa trajectoire)
+   * La voiture s'arrête si le joueur est à moins de 80px devant elle
+   */
+  private isPlayerInFrontOfCar(car: Car): boolean {
+    if (!this.player || !this.player.active) return false
+    
+    const playerX = this.player.x
+    const playerY = this.player.y - 20 // Centre du joueur
+    const carX = car.sprite.x
+    const carY = car.sprite.y
+    
+    const stopDistance = 80 // Distance à laquelle la voiture s'arrête
+    const laneWidth = 40 // Largeur de détection de la voie
+    
+    if (car.direction === 'h') {
+      // Voiture horizontale
+      // Vérifier si le joueur est sur la même voie (même Y approximativement)
+      const sameY = Math.abs(playerY - carY) < laneWidth
+      if (!sameY) return false
+      
+      // Vérifier si le joueur est devant la voiture selon sa direction
+      if (car.baseSpeed > 0) {
+        // Va vers la droite - joueur doit être à droite
+        return playerX > carX && playerX < carX + stopDistance
+      } else {
+        // Va vers la gauche - joueur doit être à gauche
+        return playerX < carX && playerX > carX - stopDistance
+      }
+    } else {
+      // Voiture verticale
+      // Vérifier si le joueur est sur la même voie (même X approximativement)
+      const sameX = Math.abs(playerX - carX) < laneWidth
+      if (!sameX) return false
+      
+      // Vérifier si le joueur est devant la voiture selon sa direction
+      if (car.baseSpeed > 0) {
+        // Va vers le bas - joueur doit être en dessous
+        return playerY > carY && playerY < carY + stopDistance
+      } else {
+        // Va vers le haut - joueur doit être au-dessus
+        return playerY < carY && playerY > carY - stopDistance
+      }
+    }
   }
   
   /**
@@ -1585,6 +1813,7 @@ export class MainScene extends Phaser.Scene {
 
   private updateDebug(): void {
     if (!this.player || !this.player.active || !this.debugText) return
+    if (!this.debugGridVisible) return // Ne pas mettre à jour si masqué
     
     const tx = Math.floor(this.player.x / this.tileSize)
     const ty = Math.floor(this.player.y / this.tileSize)
@@ -1609,6 +1838,12 @@ export class MainScene extends Phaser.Scene {
   }
 
   private collectComputer(computer: CollectibleComputer): void {
+    // Limiter l'inventaire à 2 PC maximum
+    if (this.inventory >= 2) {
+      this.events.emit('showMessage', '⚠️ Vous ne pouvez porter que 2 PC maximum ! Allez les déposer à l\'atelier NIRD.')
+      return
+    }
+    
     computer.collected = true
     this.collectedCount++
     this.inventory++
@@ -1639,6 +1874,9 @@ export class MainScene extends Phaser.Scene {
       onComplete: () => text.destroy()
     })
     
+    // Mettre à jour le sprite du PC porté
+    this.updateCarriedPC()
+    
     this.events.emit('updateStats', {
       collected: this.collectedCount,
       reconditioned: this.reconditionedCount,
@@ -1665,12 +1903,19 @@ export class MainScene extends Phaser.Scene {
         break
         
       case 'school':
-        if (this.reconditionedCount > this.distributedCount) {
+      case 'university': {
+        // Vérifier combien de PC ont déjà été distribués à cette école
+        const delivery = this.schoolDeliveries.get(building.name) || { buildingName: building.name, count: 0, maxCount: 2 }
+        
+        if (delivery.count >= delivery.maxCount) {
+          this.events.emit('showMessage', `${building.name}: "Merci ! Nous avons déjà nos ${delivery.maxCount} ordinateurs !" ✅`)
+        } else if (this.reconditionedCount > this.distributedCount) {
           this.distributeComputer(building)
         } else {
           this.events.emit('showMessage', `${building.name}: "Nous attendons des ordinateurs !"`)
         }
         break
+      }
         
       default:
         this.events.emit('showMessage', `${building.name}`)
@@ -1680,12 +1925,73 @@ export class MainScene extends Phaser.Scene {
 
   private reconditionComputers(): void {
     const count = this.inventory
-    this.inventory = 0
-    this.reconditionedCount += count
     
+    // Lancer la scène de l'atelier
+    this.enterWorkshop(count)
+  }
+  
+  /**
+   * Lance la scène WorkshopScene pour le reconditionnement
+   */
+  private enterWorkshop(pcCount: number): void {
+    this.isInsideWorkshop = true
+    
+    // Masquer le joueur et désactiver les contrôles
+    this.player.setVisible(false)
+    const body = this.player.body as Phaser.Physics.Arcade.Body
+    body.setVelocity(0)
+    
+    // Écran noir de transition
+    const blackScreen = this.add.rectangle(
+      this.cameras.main.scrollX + this.cameras.main.width / 2,
+      this.cameras.main.scrollY + this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000
+    ).setDepth(10000).setAlpha(0).setScrollFactor(0)
+    
+    // Fade to black puis lancer WorkshopScene
+    this.tweens.add({
+      targets: blackScreen,
+      alpha: 1,
+      duration: 500,
+      onComplete: () => {
+        blackScreen.destroy()
+        
+        // Mettre cette scène en pause
+        this.scene.pause('MainScene')
+        this.scene.pause('UIScene')
+        
+        // Lancer la scène de l'atelier avec les données
+        this.scene.launch('WorkshopScene', {
+          pcCount: pcCount,
+          collectedCount: this.collectedCount,
+          reconditionedCount: this.reconditionedCount,
+          distributedCount: this.distributedCount
+        })
+      }
+    })
+  }
+  
+  /**
+   * Appelé quand on revient de WorkshopScene
+   */
+  private onWorkshopComplete(data: { pcsRepaired: number, collectedCount: number, reconditionedCount: number, distributedCount: number }): void {
+    // Mettre à jour les compteurs
+    this.inventory = 0
+    this.reconditionedCount = data.reconditionedCount
+    
+    // Mettre à jour le PC porté
+    this.updateCarriedPC()
+    
+    // Réafficher le joueur
+    this.player.setVisible(true)
+    this.isInsideWorkshop = false
+    
+    // Afficher le message de sortie
     const workshop = this.buildings.find(b => b.type === 'workshop')
     if (workshop) {
-      const text = this.add.text(workshop.x, workshop.y - 80, `+${count} PC Linux ! 🐧`, {
+      const text = this.add.text(workshop.x, workshop.y - 80, `+${data.pcsRepaired} PC Linux ! 🐧`, {
         fontSize: '22px',
         color: '#22c55e',
         fontStyle: 'bold',
@@ -1707,14 +2013,22 @@ export class MainScene extends Phaser.Scene {
       inventory: this.inventory,
     })
     
-    this.events.emit('showMessage', `🎉 ${count} PC reconditionnés ! Distribuez-les aux écoles.`)
+    this.events.emit('showMessage', `🎉 ${data.pcsRepaired} PC reconditionnés ! Distribuez-les aux écoles.`)
   }
 
   private distributeComputer(school: Building): void {
+    // Mettre à jour le compteur de l'école
+    const delivery = this.schoolDeliveries.get(school.name) || { buildingName: school.name, count: 0, maxCount: 2 }
+    delivery.count++
+    this.schoolDeliveries.set(school.name, delivery)
+    
     this.distributedCount++
     
+    // Position fixe pour les 2 PC (pas aléatoire)
+    const offsetX = delivery.count === 1 ? -25 : 25
+    
     const pc = this.add.image(
-      school.x + (Math.random() - 0.5) * 60,
+      school.x + offsetX,
       school.y + 40,
       'computer_new'
     ).setScale(0).setDepth(school.y + 50)
@@ -1726,7 +2040,10 @@ export class MainScene extends Phaser.Scene {
       ease: 'Back.easeOut'
     })
     
-    const text = this.add.text(school.x, school.y - 40, '🎉 +1 PC distribué !', {
+    const remainingSlots = delivery.maxCount - delivery.count
+    const statusText = remainingSlots > 0 ? `(${remainingSlots} place restante)` : '(complet !)'
+    
+    const text = this.add.text(school.x, school.y - 40, `🎉 +1 PC distribué ! ${statusText}`, {
       fontSize: '18px',
       color: '#ec4899',
       fontStyle: 'bold',
@@ -1740,6 +2057,9 @@ export class MainScene extends Phaser.Scene {
       onComplete: () => text.destroy()
     })
     
+    // Mettre à jour le sprite du PC porté
+    this.updateCarriedPC()
+    
     this.events.emit('updateStats', {
       collected: this.collectedCount,
       reconditioned: this.reconditionedCount,
@@ -1749,8 +2069,64 @@ export class MainScene extends Phaser.Scene {
     
     this.events.emit('showMessage', `PC offert à ${school.name} ! 🐧`)
     
+    // Victoire si tous les 8 PC ont été distribués
     if (this.distributedCount >= 8) {
-      this.events.emit('victory')
+      console.log('🎉 VICTOIRE! Tous les PC ont été distribués:', this.distributedCount)
+      // Délai pour laisser le temps aux animations de se terminer
+      this.time.delayedCall(500, () => {
+        console.log('🎉 Émission de l\'événement victory...')
+        this.events.emit('victory')
+        // Backup: appeler directement UIScene si l'événement ne fonctionne pas
+        const uiScene = this.scene.get('UIScene') as Phaser.Scene & { showVictory?: () => void }
+        if (uiScene && typeof uiScene.showVictory === 'function') {
+          console.log('🎉 Appel direct de UIScene.showVictory()')
+          uiScene.showVictory()
+        }
+      })
+    }
+  }
+  
+  /**
+   * Met à jour les sprites des PC portés par le joueur
+   * Affiche un PC dans chaque bras quand l'inventaire est à 2
+   */
+  private updateCarriedPC(): void {
+    // Détruire les anciens sprites s'ils existent
+    if (this.carriedPCSprite) {
+      this.carriedPCSprite.destroy()
+      this.carriedPCSprite = null
+    }
+    if (this.carriedPCSprite2) {
+      this.carriedPCSprite2.destroy()
+      this.carriedPCSprite2 = null
+    }
+    
+    // Si le joueur a des PC non reconditionnés dans l'inventaire
+    if (this.inventory >= 1) {
+      // Premier PC (bras droit)
+      this.carriedPCSprite = this.add.image(0, 0, 'computer_old')
+        .setScale(0.7)
+        .setDepth(9998)
+    }
+    if (this.inventory >= 2) {
+      // Deuxième PC (bras gauche)
+      this.carriedPCSprite2 = this.add.image(0, 0, 'computer_old')
+        .setScale(0.7)
+        .setDepth(9998)
+    }
+    // Si le joueur a des PC reconditionnés à distribuer (et pas de PC obsoletes)
+    else if (this.inventory === 0 && this.reconditionedCount > this.distributedCount) {
+      const pcsToDistribute = this.reconditionedCount - this.distributedCount
+      // Premier PC reconditionné (bras droit)
+      this.carriedPCSprite = this.add.image(0, 0, 'computer_new')
+        .setScale(0.7)
+        .setDepth(9998)
+      // Deuxième PC si on en a plus d'un
+      if (pcsToDistribute >= 2) {
+        this.carriedPCSprite2 = this.add.image(0, 0, 'computer_new')
+          .setScale(0.7)
+          .setDepth(9998)
+      }
     }
   }
 }

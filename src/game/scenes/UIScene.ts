@@ -57,24 +57,10 @@ export class UIScene extends Phaser.Scene {
         this.updateStats(stats);
       }
     );
-
-    this.mainScene.events.on("showMessage", (message: string) => {
-      this.showMessage(message);
-    });
-
-    this.mainScene.events.on(
-      "nearBuilding",
-      (building: { name: string; type: string } | null) => {
-        if (building) {
-          this.showInteractHint(building);
-        } else {
-          this.hideInteractHint();
-        }
-      }
-    );
-
-    this.mainScene.events.on("victory", () => {
-      this.showVictory();
+    
+    this.mainScene.events.on('victory', () => {
+      console.log('🎉 UIScene: Événement victory reçu!')
+      this.showVictory()
     });
   }
 
@@ -245,40 +231,9 @@ export class UIScene extends Phaser.Scene {
     }
   }
 
-  private showMessage(message: string): void {
-    this.messageText.setText(message);
-    this.messageBox.setVisible(true);
-    this.messageBox.setAlpha(0);
-
-    this.tweens.add({
-      targets: this.messageBox,
-      alpha: 1,
-      duration: 200,
-    });
-
-    // Cacher après 4 secondes
-    this.time.delayedCall(4000, () => {
-      this.tweens.add({
-        targets: this.messageBox,
-        alpha: 0,
-        duration: 300,
-        onComplete: () => {
-          this.messageBox.setVisible(false);
-        },
-      });
-    });
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private showInteractHint(_building: { name: string; type: string }): void {
-    this.interactHint.setVisible(true);
-  }
-
-  private hideInteractHint(): void {
-    this.interactHint.setVisible(false);
-  }
-
-  private showVictory(): void {
+  public showVictory(): void {
+    console.log('🎉 UIScene: showVictory() appelé!')
+    
     // Overlay sombre
     const overlay = this.add.rectangle(
       this.cameras.main.width / 2,
