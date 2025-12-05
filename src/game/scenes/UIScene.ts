@@ -40,7 +40,7 @@ export class UIScene extends Phaser.Scene {
     this.createStatsPanel()
     this.createMessageBox()
     this.createInteractHint()
-    this.createInstructions()
+    // Les instructions sont maintenant dans le menu pause de React
     
     // Écouter les événements de la scène principale
     this.mainScene = this.scene.get('MainScene')
@@ -179,30 +179,6 @@ export class UIScene extends Phaser.Scene {
       repeat: -1,
       ease: 'Sine.easeInOut',
     })
-  }
-
-  private createInstructions(): void {
-    const x = this.cameras.main.width - 20
-    const y = 20
-    
-    // Fond
-    const bg = this.add.graphics()
-    bg.fillStyle(0x0f172a, 0.8)
-    bg.fillRoundedRect(-180, 0, 180, 90, 8)
-    
-    // Instructions
-    const text = this.add.text(-90, 45, [
-      '🎮 CONTROLES',
-      '↑←↓→ ou WASD : Déplacer',
-      'E : Interagir',
-    ].join('\n'), {
-      fontSize: '12px',
-      color: '#94a3b8',
-      align: 'center',
-      lineSpacing: 4,
-    }).setOrigin(0.5)
-    
-    this.add.container(x, y, [bg, text])
   }
 
   private updateStats(stats: {
