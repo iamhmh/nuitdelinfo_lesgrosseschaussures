@@ -202,12 +202,7 @@ function LinuxRoom() {
     )
   })}
 </group>
-
-
-
-
-
-
+      {/* PINGOUIN LINUX TUX */}
       <group position={[-2, -0.95, 1.4]} scale={[0.35, 0.35, 0.35]}>
         {/* Corps */}
         <mesh>
@@ -244,19 +239,8 @@ function LinuxRoom() {
             emissiveIntensity={0.15}
           />
         </mesh>
-
-        {/* Œil gauche */}
-        <mesh position={[0.2, 0.6, 0.18]}>
-          <sphereGeometry args={[0.07, 8, 8]} />
-          <meshStandardMaterial color="#000000" />
-        </mesh>
-
-        {/* Œil droit */}
-        <mesh position={[0.2, 0.6, -0.18]}>
-          <sphereGeometry args={[0.07, 8, 8]} />
-          <meshStandardMaterial color="#000000" />
-        </mesh>
       </group>
+      
     </group>
   );
 }
