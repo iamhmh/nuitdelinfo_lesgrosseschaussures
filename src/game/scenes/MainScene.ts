@@ -132,8 +132,10 @@ export class MainScene extends Phaser.Scene {
   // Suivi des PC distribués par école (max 2 par école)
   private schoolDeliveries: Map<string, SchoolDelivery> = new Map()
   
-  // Sprite du PC porté par le joueur
+  // Sprite du PC porté par le joueur (bras droit)
   private carriedPCSprite: Phaser.GameObjects.Image | null = null
+  // Sprite du 2e PC porté par le joueur (bras gauche)
+  private carriedPCSprite2: Phaser.GameObjects.Image | null = null
   
   // État de l'atelier intérieur
   private isInsideWorkshop: boolean = false
@@ -179,12 +181,13 @@ export class MainScene extends Phaser.Scene {
     this.trafficPhase = 'h_green'
     this.trafficTimer = 0
     
-    // Réinitialiser le debug
-    this.debugGridVisible = true
+    // Réinitialiser le debug (masqué par défaut)
+    this.debugGridVisible = false
     
     // Réinitialiser les nouvelles propriétés
     this.schoolDeliveries = new Map()
     this.carriedPCSprite = null
+    this.carriedPCSprite2 = null
     this.isInsideWorkshop = false
   }
 
@@ -843,30 +846,28 @@ export class MainScene extends Phaser.Scene {
       })
     })
     
-    // Techniciens près de l'atelier NIRD
+    // Technicien près de l'atelier NIRD (un seul)
     const workshop = this.buildings.find(b => b.type === 'workshop')
     if (workshop) {
-      for (let i = 0; i < 2; i++) {
-        const sprite = this.physics.add.sprite(
-          workshop.x + (i === 0 ? -60 : 60),
-          workshop.y + 20,
-          'npc_technician'
-        ).setOrigin(0.5, 1).setScale(1.1).setDepth(workshop.y + 100)
-        
-        // Rendre le sprite immobile (collision)
-        const body = sprite.body as Phaser.Physics.Arcade.Body
-        body.setImmovable(true)
-        body.setSize(24, 16)
-        body.setOffset(4, 48)
-        
-        this.npcs.push({
-          sprite,
-          type: 'technician',
-          isMoving: false,
-          speed: 0,
-          direction: i === 0 ? 'right' : 'left'
-        })
-      }
+      const sprite = this.physics.add.sprite(
+        workshop.x + 60,
+        workshop.y + 20,
+        'npc_technician'
+      ).setOrigin(0.5, 1).setScale(1.1).setDepth(workshop.y + 100)
+      
+      // Rendre le sprite immobile (collision)
+      const body = sprite.body as Phaser.Physics.Arcade.Body
+      body.setImmovable(true)
+      body.setSize(24, 16)
+      body.setOffset(4, 48)
+      
+      this.npcs.push({
+        sprite,
+        type: 'technician',
+        isMoving: false,
+        speed: 0,
+        direction: 'left'
+      })
     }
   }
 
@@ -1275,6 +1276,23 @@ export class MainScene extends Phaser.Scene {
       backgroundColor: '#000000cc',
       padding: { x: 10, y: 6 }
     }).setScrollFactor(0).setDepth(9999)
+    
+    // Masquer le debug par défaut
+    this.debugText.setVisible(false)
+    this.debugGridContainer.setVisible(false)
+    
+    // Écouter l'événement pour toggle le debug depuis le menu pause
+    const handleToggleDebug = (e: CustomEvent) => {
+      this.debugGridVisible = e.detail.visible
+      this.debugText.setVisible(e.detail.visible)
+      this.debugGridContainer.setVisible(e.detail.visible)
+    }
+    window.addEventListener('game-toggle-debug', handleToggleDebug as EventListener)
+    
+    // Nettoyer le listener quand la scène est détruite
+    this.events.on('shutdown', () => {
+      window.removeEventListener('game-toggle-debug', handleToggleDebug as EventListener)
+    })
   }
 
   private createDebugGrid(): void {
@@ -1547,12 +1565,18 @@ export class MainScene extends Phaser.Scene {
       this.player.setTexture('player_idle')
     }
     
-    // Mettre à jour la position du PC porté
+    // Mettre à jour la position du/des PC porté(s)
     if (this.carriedPCSprite && this.carriedPCSprite.active) {
-      // Le PC est porté devant le personnage (côté où il regarde)
-      const offsetX = this.player.flipX ? -20 : 20
-      this.carriedPCSprite.setPosition(this.player.x + offsetX, this.player.y - 25)
+      // PC côté droit
+      const offsetX = this.player.flipX ? -18 : 18
+      this.carriedPCSprite.setPosition(this.player.x + offsetX, this.player.y - 28)
       this.carriedPCSprite.setDepth(this.player.depth + 1)
+    }
+    if (this.carriedPCSprite2 && this.carriedPCSprite2.active) {
+      // PC côté gauche (opposé)
+      const offsetX = this.player.flipX ? 18 : -18
+      this.carriedPCSprite2.setPosition(this.player.x + offsetX, this.player.y - 28)
+      this.carriedPCSprite2.setDepth(this.player.depth + 1)
     }
   }
 
@@ -1740,6 +1764,7 @@ export class MainScene extends Phaser.Scene {
 
   private updateDebug(): void {
     if (!this.player || !this.player.active || !this.debugText) return
+    if (!this.debugGridVisible) return // Ne pas mettre à jour si masqué
     
     const tx = Math.floor(this.player.x / this.tileSize)
     const ty = Math.floor(this.player.y / this.tileSize)
@@ -1764,6 +1789,12 @@ export class MainScene extends Phaser.Scene {
   }
 
   private collectComputer(computer: CollectibleComputer): void {
+    // Limiter l'inventaire à 2 PC maximum
+    if (this.inventory >= 2) {
+      this.events.emit('showMessage', '⚠️ Vous ne pouvez porter que 2 PC maximum ! Allez les déposer à l\'atelier NIRD.')
+      return
+    }
+    
     computer.collected = true
     this.collectedCount++
     this.inventory++
@@ -1996,26 +2027,46 @@ export class MainScene extends Phaser.Scene {
   }
   
   /**
-   * Met à jour le sprite du PC porté par le joueur
+   * Met à jour les sprites des PC portés par le joueur
+   * Affiche un PC dans chaque bras quand l'inventaire est à 2
    */
   private updateCarriedPC(): void {
-    // Détruire l'ancien sprite s'il existe
+    // Détruire les anciens sprites s'ils existent
     if (this.carriedPCSprite) {
       this.carriedPCSprite.destroy()
       this.carriedPCSprite = null
     }
+    if (this.carriedPCSprite2) {
+      this.carriedPCSprite2.destroy()
+      this.carriedPCSprite2 = null
+    }
     
-    // Si le joueur a des PC non reconditionnés, afficher un PC obsolète
-    if (this.inventory > 0) {
+    // Si le joueur a des PC non reconditionnés dans l'inventaire
+    if (this.inventory >= 1) {
+      // Premier PC (bras droit)
       this.carriedPCSprite = this.add.image(0, 0, 'computer_old')
-        .setScale(0.8)
+        .setScale(0.7)
         .setDepth(9998)
     }
-    // Si le joueur a des PC reconditionnés à distribuer, afficher un PC neuf
-    else if (this.reconditionedCount > this.distributedCount) {
-      this.carriedPCSprite = this.add.image(0, 0, 'computer_new')
-        .setScale(0.8)
+    if (this.inventory >= 2) {
+      // Deuxième PC (bras gauche)
+      this.carriedPCSprite2 = this.add.image(0, 0, 'computer_old')
+        .setScale(0.7)
         .setDepth(9998)
+    }
+    // Si le joueur a des PC reconditionnés à distribuer (et pas de PC obsoletes)
+    else if (this.inventory === 0 && this.reconditionedCount > this.distributedCount) {
+      const pcsToDistribute = this.reconditionedCount - this.distributedCount
+      // Premier PC reconditionné (bras droit)
+      this.carriedPCSprite = this.add.image(0, 0, 'computer_new')
+        .setScale(0.7)
+        .setDepth(9998)
+      // Deuxième PC si on en a plus d'un
+      if (pcsToDistribute >= 2) {
+        this.carriedPCSprite2 = this.add.image(0, 0, 'computer_new')
+          .setScale(0.7)
+          .setDepth(9998)
+      }
     }
   }
 }
