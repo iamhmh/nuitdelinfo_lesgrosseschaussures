@@ -17,6 +17,9 @@ export class UIScene extends Phaser.Scene {
 
   // Référence à MainScene pour nettoyer les listeners
   private mainScene: Phaser.Scene | null = null;
+  
+  // Flag pour éviter d'afficher la victoire plusieurs fois
+  private victoryShown: boolean = false;
 
   constructor() {
     super({ key: "UIScene" });
@@ -34,6 +37,7 @@ export class UIScene extends Phaser.Scene {
       this.mainScene.events.off("victory");
     }
     this.mainScene = null;
+    this.victoryShown = false;
   }
 
   create(): void {
@@ -248,9 +252,10 @@ export class UIScene extends Phaser.Scene {
       yoyo: true,
     });
 
-    // Victoire si 8 PC distribués
-    if (stats.distributed >= 8) {
+    // Victoire si 8 PC distribués (une seule fois)
+    if (stats.distributed >= 8 && !this.victoryShown) {
       this.distributedText.setColor("#22c55e");
+      this.victoryShown = true;
       this.showVictory();
     }
   }
