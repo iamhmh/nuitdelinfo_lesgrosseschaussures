@@ -1,0 +1,163 @@
+.dialog-box-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dialog-box {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  border: 3px solid #10b981;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(16, 185, 129, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #10b981;
+}
+
+.dialog-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.dialog-character {
+  font-size: 20px;
+  font-weight: bold;
+  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.dialog-content {
+  margin: 16px 0;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+}
+
+.dialog-content p {
+  font-size: 16px;
+  color: #e5e7eb;
+  line-height: 1.6;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 2px solid #10b981;
+}
+
+.dialog-button {
+  background-color: #10b981;
+  color: #111827;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+.dialog-button:hover {
+  background-color: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.dialog-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.dialog-button-yes {
+  background-color: #10b981;
+  flex: 1;
+}
+
+.dialog-button-yes:hover {
+  background-color: #059669;
+}
+
+.dialog-button-no {
+  background-color: #ef4444;
+  color: #fca5a5;
+  flex: 1;
+}
+
+.dialog-button-no:hover {
+  background-color: #dc2626;
+  color: #fecaca;
+}
+
+@media (max-width: 600px) {
+  .dialog-box {
+    padding: 16px;
+    border-width: 2px;
+  }
+
+  .dialog-header {
+    gap: 8px;
+  }
+
+  .dialog-icon {
+    font-size: 24px;
+  }
+
+  .dialog-character {
+    font-size: 16px;
+  }
+
+  .dialog-content p {
+    font-size: 14px;
+  }
+
+  .dialog-button {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+}

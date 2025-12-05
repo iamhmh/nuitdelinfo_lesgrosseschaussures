@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Game from '../game/Game.tsx'
+import { DialogBox } from '../components/DialogBox.tsx'
 import ChatBot from '../components/ChatBot.tsx'
 
 export default function GamePage() {
@@ -14,6 +15,16 @@ export default function GamePage() {
   const [showHowToPlay, setShowHowToPlay] = useState(false)
   const [showControls, setShowControls] = useState(false)
   const [showDebug, setShowDebug] = useState(false) // Menu debug désactivé par défaut
+  const [showSnakeGame, setShowSnakeGame] = useState(false) // État pour le jeu Snake
+  const [phoneGivenToTux, setPhoneGivenToTux] = useState(false) // Le téléphone a été redonné à Tux
+  const [dialogData, setDialogData] = useState<{ 
+    character: string
+    message: string
+    icon?: string
+    showButtons?: boolean
+    onYesCallback?: () => void
+    onNoCallback?: () => void
+  } | null>(null)
   const [isChatOpen, setIsChatOpen] = useState(false) // État du chatbot IA
 
   // Chargement réel de 0 à 100%
@@ -90,6 +101,98 @@ export default function GamePage() {
   }
 
   const [isStarting, setIsStarting] = useState(false)
+
+  // Gérer l'ouverture/fermeture du jeu Snake
+  useEffect(() => {
+    let snakeGameInstance: Phaser.Game | null = null
+
+    if (showSnakeGame) {
+      // Importer Phaser et créer une instance du jeu Snake
+      import('phaser').then((Phaser) => {
+        const container = document.getElementById('snake-game-container')
+        if (container) {
+          // Dynamiquement importer et créer le jeu
+          import('../game/scenes/components_snake/SnakeGameScene.ts').then(({ SnakeGameScene }) => {
+            try {
+              snakeGameInstance = new Phaser.Game({
+                type: Phaser.WEBGL,
+                parent: container,
+                width: window.innerWidth,
+                height: window.innerHeight,
+                backgroundColor: '#0f172a',
+                physics: {
+                  default: 'arcade',
+                  arcade: {
+                    gravity: { x: 0, y: 0 },
+                    debug: false,
+                  },
+                },
+                scene: [SnakeGameScene],
+                scale: {
+                  mode: Phaser.Scale.FIT,
+                  autoCenter: Phaser.Scale.CENTER_BOTH,
+                },
+                render: {
+                  pixelArt: true,
+                  antialias: false,
+                },
+              })
+            } catch (error) {
+              console.error('Erreur lors du chargement du jeu Snake:', error)
+            }
+          }).catch((error) => {
+            console.error('Erreur lors de l\'import de SnakeGameScene:', error)
+          })
+        }
+      }).catch((error) => {
+        console.error('Erreur lors de l\'import de Phaser:', error)
+      })
+
+      // Écouter ESC pour fermer
+      const handleEsc = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setShowSnakeGame(false)
+        }
+      }
+      window.addEventListener('keydown', handleEsc)
+
+      return () => {
+        window.removeEventListener('keydown', handleEsc)
+        if (snakeGameInstance) {
+          snakeGameInstance.destroy(true)
+        }
+      }
+    }
+  }, [showSnakeGame])
+
+  useEffect(() => {
+    const handleShowDialog = (event: any) => {
+      setDialogData(event.detail)
+    }
+
+    window.addEventListener('showDialog', handleShowDialog)
+    return () => window.removeEventListener('showDialog', handleShowDialog)
+  }, [])
+
+  // Écouter l'événement snakeGameRequested émis par MainScene
+  useEffect(() => {
+    const handleSnakeGameRequested = () => {
+      setShowSnakeGame(true)
+    }
+
+    window.addEventListener('snakeGameRequested', handleSnakeGameRequested)
+    return () => window.removeEventListener('snakeGameRequested', handleSnakeGameRequested)
+  }, [])
+
+  // Écouter l'événement phoneGivenToTux émis par MainScene
+  useEffect(() => {
+    const handlePhoneGivenToTux = () => {
+      setPhoneGivenToTux(true)
+    }
+
+    window.addEventListener('phoneGivenToTux', handlePhoneGivenToTux)
+    return () => window.removeEventListener('phoneGivenToTux', handlePhoneGivenToTux)
+  }, [])
 
   const handleStartGame = () => {
     setIsStarting(true)
@@ -637,7 +740,7 @@ export default function GamePage() {
 
       {/* Indicateur de pause en haut */}
       {!isLoading && !isPaused && !showHowToPlay && (
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-4 right-4 z-10" style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={() => setIsPaused(true)}
             style={{
@@ -663,7 +766,109 @@ export default function GamePage() {
           >
             ⏸ PAUSE [Q]
           </button>
+
+          {/* Bouton Snake à droite du bouton Pause - Affiché uniquement après avoir redonné le téléphone à Tux */}
+          {phoneGivenToTux && (
+            <button
+              onClick={() => setShowSnakeGame(true)}
+              style={{
+                padding: '10px 12px',
+                background: 'rgba(2,6,23,0.75)',
+                border: '1px solid #475569',
+                borderRadius: '8px',
+                color: '#94a3b8',
+                fontFamily: 'monospace',
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#22c55e'
+                e.currentTarget.style.color = '#22c55e'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#475569'
+                e.currentTarget.style.color = '#94a3b8'
+              }}
+              title="Jouer à Snake - Récompense de Tux !"
+            >
+              📱 SNAKE
+            </button>
+          )}
         </div>
+      )}
+
+      {/* Modal Snake Game - Nouvelle page */}
+      {showSnakeGame && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: '#0f172a',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            flexDirection: 'column'
+          }}
+        >
+          {/* ID pour que Phaser puisse monter le jeu dedans */}
+          <div
+            id="snake-game-container"
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          />
+
+          {/* Bouton fermer en overlay */}
+          <button
+            onClick={() => setShowSnakeGame(false)}
+            style={{
+              position: 'absolute',
+              bottom: 30,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              padding: '12px 24px',
+              background: '#22c55e',
+              color: '#0f172a',
+              border: 'none',
+              borderRadius: '8px',
+              fontFamily: 'monospace',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#16a34a'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#22c55e'
+            }}
+          >
+            [ ESC ] Retour au jeu
+          </button>
+        </div>
+      )}
+
+      {/* Boîte de dialogue pour les interactions spéciales */}
+      {dialogData && (
+        <DialogBox
+          character={dialogData.character}
+          message={dialogData.message}
+          icon={dialogData.icon}
+          showButtons={dialogData.showButtons}
+          onYes={dialogData.onYesCallback}
+          onNo={dialogData.onNoCallback}
+          onClose={() => setDialogData(null)}
+        />
       )}
     </div>
   )

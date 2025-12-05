@@ -4,14 +4,16 @@ import { MainScene } from './scenes/MainScene.ts'
 import { UIScene } from './scenes/UIScene.ts'
 import { WorkshopScene } from './scenes/WorkshopScene.ts'
 
-export const createPhaserConfig = (parent: HTMLElement): Phaser.Types.Core.GameConfig => ({
+export const createPhaserConfig = (
+  parent: HTMLElement
+): Phaser.Types.Core.GameConfig => ({
   type: Phaser.WEBGL,
   parent: parent,
   width: 1280,
   height: 720,
-  backgroundColor: '#4a7c59',
+  backgroundColor: "#4a7c59",
   physics: {
-    default: 'arcade',
+    default: "arcade",
     arcade: {
       gravity: { x: 0, y: 0 },
       debug: false,
@@ -26,4 +28,4 @@ export const createPhaserConfig = (parent: HTMLElement): Phaser.Types.Core.GameC
     pixelArt: true,
     antialias: false,
   },
-})
+});
