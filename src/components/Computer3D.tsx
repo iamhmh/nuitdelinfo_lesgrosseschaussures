@@ -7,6 +7,7 @@ import {
   Environment,
   Html
 } from '@react-three/drei'
+import { TextureLoader } from 'three'
 import * as THREE from 'three'
 
 interface ComputerModelProps {
@@ -17,6 +18,8 @@ interface ComputerModelProps {
 interface Computer3DProps {
   onEnterGame: () => void
 }
+
+const woodTexture = new TextureLoader().load('/textures/wood.jpg')
 
 // Loader pendant le chargement
 function Loader() {
@@ -34,16 +37,39 @@ function Loader() {
     Décor Linux : Mur + Bureau + Lampe + Néon NIRD
 --------------------------------------------------------*/
 function LinuxRoom() {
-  const wallColor = "#0f1115";
   const deskColor = "#1a1f24";
 
   return (
     <group position={[0, 0, -2]}>
-      {/* MUR */}
-      <mesh position={[0, 1.6, -0.1]} scale={[18, 7, 1]}>
-        <planeGeometry args={[1, 1]} />
-        <meshStandardMaterial color={wallColor} />
-      </mesh>
+      {/* MUR EN LATTES DE BOIS ALTERNÉES */}
+<group position={[0, 1.6, -0.2]}>
+  {/* Fond noir derrière les lattes */}
+  <mesh position={[0, 0, -0.05]} scale={[15, 6, 1]}>
+    <planeGeometry args={[1, 1]} />
+    <meshStandardMaterial color="black" />
+  </mesh>
+
+  {/* Lattes */}
+  {Array.from({ length: 30 }).map((_, i) => (
+    <mesh 
+      key={i}
+      position={[
+        -7 + i * 0.5, // espacement horizontal
+        0,
+        0
+      ]}
+    >
+      <boxGeometry args={[0.35, 6, 0.1]} /> 
+      <meshStandardMaterial
+        map={woodTexture} 
+        roughness={0.8}
+        metalness={0.1}
+      />
+    </mesh>
+  ))}
+</group>
+
+
 
       {/* BUREAU */}
       <mesh position={[0, -1.1, 1]}>
@@ -55,80 +81,129 @@ function LinuxRoom() {
         />
       </mesh>
 
-      {/* ----------------------------------------------------
-          LAMPE DE BUREAU — posée réellement sur le bureau
-      -----------------------------------------------------*/}
-      <group position={[-3.5, -0.98, 1.5]}>
-        {/* Base */}
-        <mesh>
-          <cylinderGeometry args={[0.25, 0.25, 0.1, 32]} />
-          <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.2} />
-        </mesh>
+      {/* LAMPE RÉTRO GAUCHE */}
+<group position={[-3.5, -0.98, 1.5]}>
+  {/* Base ronde */}
+  <mesh>
+    <cylinderGeometry args={[0.35, 0.35, 0.12, 32]} />
+    <meshStandardMaterial 
+      color="#4a4a4a" 
+      roughness={0.6} 
+      metalness={0.2} 
+    />
+  </mesh>
 
-        {/* Pied vertical */}
-        <mesh position={[0, 0.45, 0]}>
-          <cylinderGeometry args={[0.08, 0.08, 0.9, 32]} />
-          <meshStandardMaterial color="#334155" metalness={0.6} roughness={0.3} />
-        </mesh>
+  {/* Pied */}
+  <mesh position={[0, 0.5, 0]}>
+    <cylinderGeometry args={[0.08, 0.08, 1, 24]} />
+    <meshStandardMaterial 
+      color="#5a5a5a" 
+      roughness={0.5} 
+      metalness={0.3} 
+    />
+  </mesh>
 
-        {/* Tête de lampe */}
-        <mesh position={[0, 0.95, 0.25]} rotation={[-0.4, 0, 0]}>
-          <boxGeometry args={[0.5, 0.22, 0.22]} />
-          <meshStandardMaterial
-            color="#00ff88"
-            emissive="#00ff88"
-            emissiveIntensity={0.7}   // lumière douce
-            metalness={0.3}
-            roughness={0.4}
-          />
-        </mesh>
+  {/* Abat-jour rétro en dôme */}
+  <mesh position={[0, 1.1, 0]}>
+    <sphereGeometry args={[0.45, 32, 32, 0, Math.PI]} />
+    <meshStandardMaterial 
+      color="#e8d7a9"
+      emissive="#e8d7a9"
+      emissiveIntensity={0.3}
+      roughness={0.4}
+    />
+  </mesh>
 
-        {/* Lumière douce émise par la lampe */}
-        <pointLight
-          position={[0, 0.95, 0.25]}
-          intensity={0.8}
-          distance={4}
-          color="#00ff88"
+  {/* Ampoule chaude */}
+  <pointLight
+    position={[0, 1.05, 0]}
+    intensity={0.9}
+    distance={4}
+    color="#ffddaa"
+  />
+</group>
+
+
+{/* PETIT SAPIN DE NOËL */}
+<group position={[3.5, -1.05, 1.4]} scale={[0.9, 0.9, 0.9]}>
+  
+  {/* Tronc */}
+  <mesh position={[0, 0.4, 0]}>
+    <cylinderGeometry args={[0.12, 0.12, 0.5, 16]} />
+    <meshStandardMaterial 
+      color="#8b5a2b"
+      roughness={0.8}
+    />
+  </mesh>
+
+  {/* Couche 1 (bas du sapin) */}
+  <mesh position={[0, 0.9, 0]}>
+    <coneGeometry args={[0.8, 0.6, 32]} />
+    <meshStandardMaterial 
+      color="#1e8f45"
+      roughness={0.55}
+      metalness={0.15}
+    />
+  </mesh>
+
+  {/* Couche 2 */}
+  <mesh position={[0, 1.25, 0]}>
+    <coneGeometry args={[0.6, 0.55, 32]} />
+    <meshStandardMaterial 
+      color="#1d7a3b"
+      roughness={0.55}
+      metalness={0.15}
+    />
+  </mesh>
+
+  {/* Couche 3 */}
+  <mesh position={[0, 1.55, 0]}>
+    <coneGeometry args={[0.4, 0.5, 32]} />
+    <meshStandardMaterial 
+      color="#196b35"
+      roughness={0.55}
+      metalness={0.15}
+    />
+  </mesh>
+
+  {/* Petite étoile lumineuse */}
+  <mesh position={[0, 1.9, 0]}>
+    <octahedronGeometry args={[0.12, 0]} />
+    <meshStandardMaterial 
+      color="#ffd86b"
+      emissive="#ffd86b"
+      emissiveIntensity={0.4}
+      roughness={0.3}
+    />
+  </mesh>
+
+  {/* Boules de Noël minimalistes */}
+  {Array.from({ length: 8 }).map((_, i) => {
+    const angle = (i / 8) * Math.PI * 2
+    const radius = 0.55
+    const x = Math.cos(angle) * radius
+    const z = Math.sin(angle) * radius
+    // eslint-disable-next-line react-hooks/purity
+    const y = 0.95 + Math.random() * 0.5
+
+    const colors = ["#ff4d6d", "#ffd700", "#4da6ff"]
+    const color = colors[i % colors.length]
+
+    return (
+      <mesh key={i} position={[x, y, z]} scale={[0.12, 0.12, 0.12]}>
+        <sphereGeometry args={[0.15, 16, 16]} />
+        <meshStandardMaterial 
+          color={color}
+          metalness={0.4}
+          roughness={0.4}
+          emissive={color}
+          emissiveIntensity={0.1}
         />
-      </group>
-
-      {/* ----------------------------------------------------
-          LAMPE DROITE — miroir exact de la gauche
-      -----------------------------------------------------*/}
-      <group position={[3.5, -0.98, 1.5]}>
-        {/* Base */}
-        <mesh>
-          <cylinderGeometry args={[0.25, 0.25, 0.1, 32]} />
-          <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.2} />
-        </mesh>
-
-        {/* Pied */}
-        <mesh position={[0, 0.50, 0]}>
-          <cylinderGeometry args={[0.08, 0.08, 0.9, 32]} />
-          <meshStandardMaterial color="#334155" metalness={0.6} roughness={0.3} />
-        </mesh>
-
-        {/* Tête */}
-        <mesh position={[0, 0.95, 0.25]} rotation={[-0.4, 0, 0]}>
-          <boxGeometry args={[0.5, 0.22, 0.22]} />
-          <meshStandardMaterial
-            color="#00ff88"
-            emissive="#00ff88"
-            emissiveIntensity={0.7}
-            metalness={0.3}
-            roughness={0.4}
-          />
-        </mesh>
-
-        {/* Lumière douce */}
-        <pointLight
-          position={[0, 0.95, 0.25]}
-          intensity={0.8}
-          distance={4}
-          color="#00ff88"
-        />
-      </group>
-
+      </mesh>
+    )
+  })}
+</group>
+      {/* PINGOUIN LINUX TUX */}
       <group position={[-2, -0.95, 1.4]} scale={[0.35, 0.35, 0.35]}>
         {/* Corps */}
         <mesh>
@@ -165,19 +240,8 @@ function LinuxRoom() {
             emissiveIntensity={0.15}
           />
         </mesh>
-
-        {/* Œil gauche */}
-        <mesh position={[0.2, 0.6, 0.18]}>
-          <sphereGeometry args={[0.07, 8, 8]} />
-          <meshStandardMaterial color="#000000" />
-        </mesh>
-
-        {/* Œil droit */}
-        <mesh position={[0.2, 0.6, -0.18]}>
-          <sphereGeometry args={[0.07, 8, 8]} />
-          <meshStandardMaterial color="#000000" />
-        </mesh>
       </group>
+      
     </group>
   );
 }
@@ -302,7 +366,7 @@ function ComputerModel({ onScreenClick, isZooming }: ComputerModelProps) {
   const { camera } = useThree()
   const zoomProgress = useRef(0)
 
-  useFrame((state) => {
+  useFrame(() => {
     if (!groupRef.current) return
 
     if (!isZooming) {

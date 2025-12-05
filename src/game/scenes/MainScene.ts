@@ -144,20 +144,20 @@ export class MainScene extends Phaser.Scene {
   private treeColliders: Phaser.Physics.Arcade.StaticGroup | null = null;
 
   // Système de feux de circulation
-  private trafficLights: TrafficLight[] = [];
-  private trafficPhase: TrafficPhase = "h_green";
-  private trafficTimer: number = 0;
-  private readonly TRAFFIC_GREEN_DURATION = 5000; // 5 secondes de vert
-  private readonly TRAFFIC_YELLOW_DURATION = 1500; // 1.5 secondes d'orange
-
-  private collectedCount: number = 0;
-  private reconditionedCount: number = 0;
-  private distributedCount: number = 0;
-  private inventory: number = 0;
-  private nearBuilding: Building | null = null;
-  private nearComputer: CollectibleComputer | null = null;
-  private nearSpecialObject: SpecialObject | null = null;
-
+  private trafficLights: TrafficLight[] = []
+  private trafficPhase: TrafficPhase = 'h_green'
+  private trafficTimer: number = 0
+  private readonly TRAFFIC_GREEN_DURATION = 5000 // 5 secondes de vert
+  private readonly TRAFFIC_YELLOW_DURATION = 1500 // 1.5 secondes d'orange
+  
+  private collectedCount: number = 0
+  private reconditionedCount: number = 0
+  private distributedCount: number = 0
+  private inventory: number = 0
+  private nearBuilding: Building | null = null
+  private nearComputer: CollectibleComputer | null = null
+  private nearTechnician: NPC | null = null // NPC technicien à proximité
+  
   // Suivi des PC distribués par école (max 2 par école)
   private schoolDeliveries: Map<string, SchoolDelivery> = new Map();
 
@@ -195,10 +195,10 @@ export class MainScene extends Phaser.Scene {
     this.inventory = 0;
 
     // Réinitialiser les références
-    this.nearBuilding = null;
-    this.nearComputer = null;
-    this.nearSpecialObject = null;
-
+    this.nearBuilding = null
+    this.nearComputer = null
+    this.nearTechnician = null
+    
     // Réinitialiser les tableaux (important pour éviter les doublons)
     this.buildings = [];
     this.occupiedZones = [];
@@ -984,20 +984,16 @@ export class MainScene extends Phaser.Scene {
       { tx: 43, ty: 8 },
       { tx: 43, ty: 25 },
       { tx: 43, ty: 38 },
-    ];
-
-    fixedNPCPositions.forEach((pos) => {
-      const type = Phaser.Math.RND.pick(npcTypes);
-      const sprite = this.physics.add
-        .sprite(
-          pos.tx * this.tileSize + 32,
-          pos.ty * this.tileSize + 32,
-          `npc_${type}`
-        )
-        .setOrigin(0.5, 1)
-        .setScale(1.1)
-        .setDepth(pos.ty * this.tileSize + 100);
-
+    ]
+    
+    fixedNPCPositions.forEach(pos => {
+      const type = Phaser.Math.RND.pick(npcTypes)
+      const sprite = this.physics.add.sprite(
+        pos.tx * this.tileSize + 32,
+        pos.ty * this.tileSize + 32,
+        `npc_${type}`
+      ).setOrigin(0.5, 1).setScale(1.1).setDepth(pos.ty * this.tileSize)
+      
       // Rendre le sprite immobile (collision statique)
       const body = sprite.body as Phaser.Physics.Arcade.Body;
       body.setImmovable(true);
@@ -1030,8 +1026,8 @@ export class MainScene extends Phaser.Scene {
         .sprite(startX, startY, `npc_${type}`)
         .setOrigin(0.5, 1)
         .setScale(1.1)
-        .setDepth(startY + 100);
-
+        .setDepth(startY)
+      
       // Rendre le sprite immobile (collision)
       const body = sprite.body as Phaser.Physics.Arcade.Body;
       body.setImmovable(true);
@@ -1056,12 +1052,12 @@ export class MainScene extends Phaser.Scene {
     // Technicien près de l'atelier NIRD (un seul)
     const workshop = this.buildings.find((b) => b.type === "workshop");
     if (workshop) {
-      const sprite = this.physics.add
-        .sprite(workshop.x + 60, workshop.y + 20, "npc_technician")
-        .setOrigin(0.5, 1)
-        .setScale(1.1)
-        .setDepth(workshop.y + 100);
-
+      const sprite = this.physics.add.sprite(
+        workshop.x + 188,  // Déplacé de 2 tiles vers la droite (60 + 128)
+        workshop.y + 20,
+        'npc_technician'
+      ).setOrigin(0.5, 1).setScale(1.1).setDepth(workshop.y + 20)
+      
       // Rendre le sprite immobile (collision)
       const body = sprite.body as Phaser.Physics.Arcade.Body;
       body.setImmovable(true);
@@ -1948,12 +1944,12 @@ export class MainScene extends Phaser.Scene {
   }
 
   private checkProximity(): void {
-    if (!this.player || !this.player.active) return;
-
-    this.nearBuilding = null;
-    this.nearComputer = null;
-    this.nearSpecialObject = null;
-
+    if (!this.player || !this.player.active) return
+    
+    this.nearBuilding = null
+    this.nearComputer = null
+    this.nearTechnician = null
+    
     if (this.computers) {
       this.computers.forEach((c) => {
         if (c.interactIcon && !c.collected) {
@@ -1961,32 +1957,33 @@ export class MainScene extends Phaser.Scene {
         }
       });
     }
-
-    if (this.specialObjects) {
-      this.specialObjects.forEach((obj) => {
-        if (obj.interactIcon && !obj.interacted) {
-          obj.interactIcon.setVisible(false);
+    
+    // Vérifier la proximité avec le NPC technicien (celui près de l'atelier)
+    for (const npc of this.npcs) {
+      if (npc.type === 'technician' && npc.sprite) {
+        const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, npc.sprite.x, npc.sprite.y)
+        if (dist < 80) {
+          this.nearTechnician = npc
+          this.events.emit('nearBuilding', { name: '🔧 Technicien NIRD', type: 'npc_technician' })
+          break
         }
-      });
-    }
-
-    if (!this.buildings) return;
-    for (const building of this.buildings) {
-      const dist = Phaser.Math.Distance.Between(
-        this.player.x,
-        this.player.y,
-        building.x,
-        building.y
-      );
-      if (dist < 120) {
-        this.nearBuilding = building;
-        this.events.emit("nearBuilding", building);
-        break;
       }
     }
-
-    if (!this.nearBuilding) {
-      this.events.emit("nearBuilding", null);
+    
+    if (!this.nearTechnician) {
+      if (!this.buildings) return
+      for (const building of this.buildings) {
+        const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, building.x, building.y)
+        if (dist < 120) {
+          this.nearBuilding = building
+          this.events.emit('nearBuilding', building)
+          break
+        }
+      }
+    }
+    
+    if (!this.nearBuilding && !this.nearTechnician) {
+      this.events.emit('nearBuilding', null)
     }
 
     for (const computer of this.computers) {
@@ -2049,8 +2046,15 @@ export class MainScene extends Phaser.Scene {
   }
 
   private updateDepth(): void {
-    if (!this.player || !this.player.active) return;
-    this.player.setDepth(this.player.y + 10);
+    if (!this.player || !this.player.active) return
+    this.player.setDepth(this.player.y)
+    
+    // Mettre à jour le depth des NPCs en mouvement
+    this.npcs.forEach(npc => {
+      if (npc.sprite && npc.sprite.active && npc.isMoving) {
+        npc.sprite.setDepth(npc.sprite.y)
+      }
+    })
   }
 
   private updateCars(): void {
@@ -2268,10 +2272,15 @@ export class MainScene extends Phaser.Scene {
 
   // ==================== INTERACTIONS ====================
   private handleInteraction(): void {
-    // Vérifier d'abord si le joueur interagit avec le téléphone (mais pas s'il le porte déjà)
-    if (this.nearSpecialObject?.phone && !this.isCarryingPhone) {
-      this.handlePhoneInteraction();
-      return;
+    // Interaction avec le technicien IA
+    if (this.nearTechnician) {
+      this.openTechnicianChat()
+      return
+    }
+    
+    if (this.nearComputer && !this.nearComputer.collected) {
+      this.collectComputer(this.nearComputer)
+      return
     }
 
     if (this.nearComputer && !this.nearComputer.collected) {
@@ -2299,6 +2308,19 @@ export class MainScene extends Phaser.Scene {
     if (this.nearBuilding) {
       this.interactWithBuilding(this.nearBuilding);
     }
+  }
+  
+  /**
+   * Ouvre le chatbot IA du technicien
+   * Émet un événement global que React écoute
+   */
+  private openTechnicianChat(): void {
+    // Pause le jeu pendant le chat
+    this.scene.pause('MainScene')
+    this.scene.pause('UIScene')
+    
+    // Émettre un événement global pour ouvrir le chatbot React
+    window.dispatchEvent(new CustomEvent('open-technician-chat'))
   }
 
   private collectComputer(computer: CollectibleComputer): void {

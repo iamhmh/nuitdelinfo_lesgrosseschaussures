@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Game from '../game/Game.tsx'
 import { DialogBox } from '../components/DialogBox.tsx'
+import ChatBot from '../components/ChatBot.tsx'
 
 export default function GamePage() {
   const navigate = useNavigate()
@@ -23,6 +24,7 @@ export default function GamePage() {
     onYesCallback?: () => void
     onNoCallback?: () => void
   } | null>(null)
+  const [isChatOpen, setIsChatOpen] = useState(false) // État du chatbot IA
 
   // Chargement réel de 0 à 100%
   useEffect(() => {
@@ -60,6 +62,24 @@ export default function GamePage() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
+
+  // Écouter l'événement pour ouvrir le chatbot du technicien
+  useEffect(() => {
+    const handleOpenChat = () => {
+      setIsChatOpen(true)
+    }
+    window.addEventListener('open-technician-chat', handleOpenChat)
+    return () => window.removeEventListener('open-technician-chat', handleOpenChat)
+  }, [])
+
+  // Fermer le chatbot et reprendre le jeu
+  const handleCloseChat = useCallback(() => {
+    setIsChatOpen(false)
+    // Reprendre le jeu après un court délai
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('game-pause', { detail: { paused: false } }))
+    }, 100)
+  }, [])
 
   const handleResume = () => {
     setIsPaused(false)
@@ -701,6 +721,15 @@ export default function GamePage() {
 
         {/* Canvas du jeu */}
         <Game />
+        
+        {/* Chatbot IA du Technicien */}
+        <ChatBot
+          isOpen={isChatOpen}
+          onClose={handleCloseChat}
+          title="Secrétaire Virtuel"
+          subtitle="Technicien NIRD - Atelier de reconditionnement"
+          placeholder="Posez votre question sur le défi, le jeu..."
+        />
       </main>
 
       {/* Indicateur de pause en haut */}

@@ -11,7 +11,7 @@ export default function About() {
         <div className="about-header-inner">
           <button onClick={() => navigate('/')} className="about-logo">
             <div className="about-logo-icon">🌿</div>
-            <span className="about-logo-text">Village Numérique</span>
+            <span className="about-logo-text">Recondi_tech</span>
           </button>
 
           <nav className="about-nav">
@@ -30,10 +30,10 @@ export default function About() {
         <section className="about-hero">
           <p className="about-hero-label">La Nuit de l'Info 2025</p>
           <h1 className="about-hero-title">
-            La démarche <span>NIRD</span>
+            Recondi_tech – La démarche <span>NIRD</span>
           </h1>
           <p className="about-hero-subtitle">
-            Pour un numérique plus inclusif, responsable et durable.
+            Un mini-jeu qui sensibilise au numérique inclusif, responsable et durable à travers le réemploi d’ordinateurs.
           </p>
         </section>
 
@@ -46,7 +46,9 @@ export default function About() {
                 <span className="about-nird-letter blue">N</span>
                 <span className="about-nird-word">Numérique</span>
               </div>
-              <p className="about-nird-desc">Des outils technologiques au service de tous</p>
+              <p className="about-nird-desc">
+                Un numérique pensé comme un bien commun : accessible, maîtrisé et utile.
+              </p>
             </div>
 
             <div className="about-nird-card">
@@ -55,7 +57,9 @@ export default function About() {
                 <span className="about-nird-letter purple">I</span>
                 <span className="about-nird-word">Inclusif</span>
               </div>
-              <p className="about-nird-desc">Accessible à chacun, sans discrimination</p>
+              <p className="about-nird-desc">
+                Une technologie qui n’exclut personne et réduit les inégalités d’accès.
+              </p>
             </div>
 
             <div className="about-nird-card">
@@ -64,7 +68,9 @@ export default function About() {
                 <span className="about-nird-letter orange">R</span>
                 <span className="about-nird-word">Responsable</span>
               </div>
-              <p className="about-nird-desc">Éthique, sobre et respectueux des données</p>
+              <p className="about-nird-desc">
+                Des usages sobres, éthiques et attentifs à leur impact environnemental.
+              </p>
             </div>
 
             <div className="about-nird-card">
@@ -73,7 +79,9 @@ export default function About() {
                 <span className="about-nird-letter green">D</span>
                 <span className="about-nird-word">Durable</span>
               </div>
-              <p className="about-nird-desc">Pérenne, réparable et réemployable</p>
+              <p className="about-nird-desc">
+                Des machines réemployées, réparables, et pensées pour durer.
+              </p>
             </div>
           </div>
         </section>
@@ -86,21 +94,27 @@ export default function About() {
               <div className="about-step-number">1</div>
               <div className="about-step-icon">💻</div>
               <h3 className="about-step-name">Collectez</h3>
-              <p className="about-step-desc">Récupérez les PC obsolètes dans les entreprises</p>
+              <p className="about-step-desc">
+                Récupérez les ordinateurs obsolètes auprès des entreprises du village.
+              </p>
             </div>
 
             <div className="about-step-card">
               <div className="about-step-number">2</div>
               <div className="about-step-icon">🐧</div>
               <h3 className="about-step-name">Reconditionnez</h3>
-              <p className="about-step-desc">Installez Linux à l'atelier NIRD</p>
+              <p className="about-step-desc">
+                Passez à l’atelier NIRD pour installer Linux et redonner vie au matériel.
+              </p>
             </div>
 
             <div className="about-step-card">
               <div className="about-step-number">3</div>
               <div className="about-step-icon">🏫</div>
               <h3 className="about-step-name">Redistribuez</h3>
-              <p className="about-step-desc">Donnez les PC aux écoles du village</p>
+              <p className="about-step-desc">
+                Offrez les machines reconditionnées aux écoles pour soutenir l’éducation numérique.
+              </p>
             </div>
           </div>
         </section>
@@ -112,7 +126,9 @@ export default function About() {
               <span className="about-linux-icon">🐧</span>
               <div>
                 <h2 className="about-linux-title">Pourquoi Linux ?</h2>
-                <p className="about-linux-subtitle">Le système idéal pour le réemploi</p>
+                <p className="about-linux-subtitle">
+                  Un système libre, léger et sécurisé, parfait pour prolonger la vie des ordinateurs.
+                </p>
               </div>
             </div>
             <div className="about-linux-grid">
@@ -122,23 +138,23 @@ export default function About() {
               </div>
               <div className="about-linux-feature">
                 <span className="about-linux-feature-icon">🪶</span>
-                <span className="about-linux-feature-text">Léger et rapide</span>
+                <span className="about-linux-feature-text">Léger et performant</span>
               </div>
               <div className="about-linux-feature">
                 <span className="about-linux-feature-icon">🛡️</span>
-                <span className="about-linux-feature-text">Sécurisé</span>
+                <span className="about-linux-feature-text">Sécurisé et fiable</span>
               </div>
               <div className="about-linux-feature">
                 <span className="about-linux-feature-icon">📚</span>
-                <span className="about-linux-feature-text">Éducatif</span>
+                <span className="about-linux-feature-text">Idéal pour apprendre</span>
               </div>
               <div className="about-linux-feature">
                 <span className="about-linux-feature-icon">🌐</span>
-                <span className="about-linux-feature-text">Communautaire</span>
+                <span className="about-linux-feature-text">Soutenu par une grande communauté</span>
               </div>
               <div className="about-linux-feature">
                 <span className="about-linux-feature-icon">🔧</span>
-                <span className="about-linux-feature-text">Personnalisable</span>
+                <span className="about-linux-feature-text">Entièrement personnalisable</span>
               </div>
             </div>
           </div>
@@ -146,8 +162,10 @@ export default function About() {
 
         {/* CTA */}
         <section className="about-cta-section">
-          <h2 className="about-cta-title">Prêt à jouer ?</h2>
-          <p className="about-cta-subtitle">Aidez le village à passer au numérique responsable</p>
+          <h2 className="about-cta-title">Envie d’agir pour un numérique plus responsable ?</h2>
+          <p className="about-cta-subtitle">
+            Aidez le village à transformer ses vieilles machines en nouvelles opportunités.
+          </p>
           <button onClick={() => navigate('/game')} className="about-cta-btn">
             Lancer le jeu
           </button>
@@ -159,7 +177,7 @@ export default function About() {
         <div className="about-footer-inner">
           <div className="about-footer-brand">
             <span className="about-footer-brand-icon">🌿</span>
-            <span className="about-footer-brand-text">Village Numérique Résistant</span>
+            <span className="about-footer-brand-text">Recondi_tech</span>
           </div>
           <p className="about-footer-copy">© 2025 Les Grosses Chaussures · La Nuit de l'Info</p>
         </div>
