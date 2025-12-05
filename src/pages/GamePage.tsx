@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Game from '../game/Game.tsx'
+import { DialogBox } from '../components/DialogBox.tsx'
 
 export default function GamePage() {
   const navigate = useNavigate()
@@ -14,6 +15,14 @@ export default function GamePage() {
   const [showControls, setShowControls] = useState(false)
   const [showDebug, setShowDebug] = useState(false) // Menu debug désactivé par défaut
   const [showSnakeGame, setShowSnakeGame] = useState(false) // État pour le jeu Snake
+  const [dialogData, setDialogData] = useState<{ 
+    character: string
+    message: string
+    icon?: string
+    showButtons?: boolean
+    onYesCallback?: () => void
+    onNoCallback?: () => void
+  } | null>(null)
 
   // Chargement réel de 0 à 100%
   useEffect(() => {
@@ -138,6 +147,16 @@ export default function GamePage() {
       }
     }
   }, [showSnakeGame])
+
+  // Écouter l'événement showDialog émis par MainScene
+  useEffect(() => {
+    const handleShowDialog = (event: any) => {
+      setDialogData(event.detail)
+    }
+
+    window.addEventListener('showDialog', handleShowDialog)
+    return () => window.removeEventListener('showDialog', handleShowDialog)
+  }, [])
 
   const handleStartGame = () => {
     setIsStarting(true)
@@ -790,6 +809,19 @@ export default function GamePage() {
             [ ESC ] Retour au jeu
           </button>
         </div>
+      )}
+
+      {/* Boîte de dialogue pour les interactions spéciales */}
+      {dialogData && (
+        <DialogBox
+          character={dialogData.character}
+          message={dialogData.message}
+          icon={dialogData.icon}
+          showButtons={dialogData.showButtons}
+          onYes={dialogData.onYesCallback}
+          onNo={dialogData.onNoCallback}
+          onClose={() => setDialogData(null)}
+        />
       )}
     </div>
   )
