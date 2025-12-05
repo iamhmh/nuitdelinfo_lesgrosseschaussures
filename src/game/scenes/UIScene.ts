@@ -61,6 +61,20 @@ export class UIScene extends Phaser.Scene {
     this.mainScene.events.on('victory', () => {
       this.showVictory()
     });
+    
+    // Écouter l'événement nearBuilding pour afficher/cacher l'indication d'interaction
+    this.mainScene.events.on('nearBuilding', (building: { name: string; type: string } | null) => {
+      if (building) {
+        this.interactHint.setVisible(true);
+      } else {
+        this.interactHint.setVisible(false);
+      }
+    });
+    
+    // Écouter l'événement showMessage pour afficher les messages d'interaction
+    this.mainScene.events.on('showMessage', (message: string) => {
+      this.showMessage(message);
+    });
   }
 
   private createStatsPanel(): void {
@@ -205,6 +219,16 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
+  private showMessage(message: string): void {
+    this.messageText.setText(message);
+    this.messageBox.setVisible(true);
+    
+    // Masquer après 3 secondes
+    this.time.delayedCall(3000, () => {
+      this.messageBox.setVisible(false);
+    });
+  }
+
   private updateStats(stats: {
     collected: number;
     reconditioned: number;
@@ -230,7 +254,9 @@ export class UIScene extends Phaser.Scene {
     }
   }
 
-  public showVictory(): void {    
+  public showVictory(): void {
+    console.log("showVictory appelé !");
+    
     // Overlay sombre
     const overlay = this.add.rectangle(
       this.cameras.main.width / 2,
@@ -239,7 +265,7 @@ export class UIScene extends Phaser.Scene {
       this.cameras.main.height,
       0x0f172a,
       0.9
-    );
+    ).setDepth(10000);
 
     // Texte de victoire - plus haut
     const victoryTitle = this.add
@@ -253,7 +279,8 @@ export class UIScene extends Phaser.Scene {
           fontStyle: "bold",
         }
       )
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(10001);
 
     const victoryText = this.add
       .text(
@@ -274,7 +301,8 @@ export class UIScene extends Phaser.Scene {
           lineSpacing: 8,
         }
       )
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(10001);
 
     // Bouton rejouer - zone interactive plus grande et mieux définie
     const buttonWidth = 160;
@@ -354,6 +382,7 @@ export class UIScene extends Phaser.Scene {
       button,
     ]);
     container.setAlpha(0);
+    container.setDepth(10000);
 
     this.tweens.add({
       targets: container,
@@ -368,7 +397,7 @@ export class UIScene extends Phaser.Scene {
         -20,
         5 + Math.random() * 10,
         [0x22c55e, 0x06b6d4, 0xf59e0b, 0xec4899][Math.floor(Math.random() * 4)]
-      );
+      ).setDepth(10002);
 
       this.tweens.add({
         targets: particle,

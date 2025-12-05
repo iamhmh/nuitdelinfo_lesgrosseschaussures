@@ -46,6 +46,12 @@ export class BootScene extends Phaser.Scene {
       "placeholder",
       "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
     );
+    
+    // Charger les logos des distributions Linux
+    this.load.image("logo_ubuntu", "/src/assets/ubuntu-removebg-preview.png");
+    this.load.image("logo_debian", "/src/assets/debian-removebg-preview.png");
+    this.load.image("logo_fedora", "/src/assets/fedora-removebg-preview.png");
+    this.load.image("logo_mint", "/src/assets/mint-removebg-preview.png");
   }
 
   create(): void {

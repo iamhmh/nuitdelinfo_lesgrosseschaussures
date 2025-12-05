@@ -25,16 +25,17 @@ interface WorkshopData {
 // Distributions Linux disponibles
 interface LinuxDistro {
   name: string
-  icon: string
+  icon: string // Emoji de fallback
+  textureKey: string // Clé de la texture pour le logo
   color: number
   description: string
 }
 
 const LINUX_DISTROS: LinuxDistro[] = [
-  { name: 'Ubuntu', icon: '🟠', color: 0xE95420, description: 'Idéal pour débuter' },
-  { name: 'Linux Mint', icon: '🟢', color: 0x87CF3E, description: 'Simple et élégant' },
-  { name: 'Debian', icon: '🔴', color: 0xA80030, description: 'Stable et fiable' },
-  { name: 'Fedora', icon: '🔵', color: 0x3C6EB4, description: 'Moderne et innovant' },
+  { name: 'Ubuntu', icon: '🟠', textureKey: 'logo_ubuntu', color: 0xE95420, description: 'Idéal pour débuter' },
+  { name: 'Linux Mint', icon: '🟢', textureKey: 'logo_mint', color: 0x87CF3E, description: 'Simple et élégant' },
+  { name: 'Debian', icon: '🔴', textureKey: 'logo_debian', color: 0xA80030, description: 'Stable et fiable' },
+  { name: 'Fedora', icon: '🔵', textureKey: 'logo_fedora', color: 0x3C6EB4, description: 'Moderne et innovant' },
 ]
 
 export class WorkshopScene extends Phaser.Scene {
@@ -495,11 +496,11 @@ export class WorkshopScene extends Phaser.Scene {
       
       this.desktopContainer.add(distroBox)
       
-      // Icône
-      const icon = this.add.text(x, distroY - 25, distro.icon, {
-        fontSize: '36px'
-      }).setOrigin(0.5)
-      this.desktopContainer.add(icon)
+      // Logo de la distribution (image)
+      const logo = this.add.image(x, distroY - 25, distro.textureKey)
+        .setScale(0.15) // Ajuster la taille selon les logos
+        .setOrigin(0.5)
+      this.desktopContainer.add(logo)
       
       // Nom
       const name = this.add.text(x, distroY + 15, distro.name, {
@@ -551,12 +552,17 @@ export class WorkshopScene extends Phaser.Scene {
       .setStrokeStyle(3, distro.color)
     this.desktopContainer.add(installScreen)
     
-    // Titre
-    const title = this.add.text(0, -110, `${distro.icon} Installation de ${distro.name}`, {
+    // Titre avec logo
+    const titleLogo = this.add.image(-120, -110, distro.textureKey)
+      .setScale(0.1)
+      .setOrigin(0.5)
+    this.desktopContainer.add(titleLogo)
+    
+    const title = this.add.text(10, -110, `Installation de ${distro.name}`, {
       fontSize: '22px',
       color: '#ffffff',
       fontStyle: 'bold'
-    }).setOrigin(0.5)
+    }).setOrigin(0, 0.5)
     this.desktopContainer.add(title)
     
     // Barre de progression
@@ -626,12 +632,13 @@ export class WorkshopScene extends Phaser.Scene {
     if (!this.isDesktopOpen) return
     
     this.isDesktopOpen = false
+    this.isPlayerRepairing = false // Débloquer le joueur dans tous les cas
     
     if (this.desktopContainer) {
       this.desktopContainer.destroy()
     }
     
-    // Si annulé, débloquer le joueur
+    // Si annulé, afficher un message
     if (!completed) {
       this.showMessage('❌ Installation annulée')
     }

@@ -958,10 +958,10 @@ export class MainScene extends Phaser.Scene {
 
   // ==================== PNJs ====================
   private createNPCs(): void {
-    const npcTypes: Array<"citizen" | "woman" | "technician"> = [
+    // Types pour les NPCs aléatoires (sans technician - celui-ci est placé manuellement près de l'atelier)
+    const npcTypes: Array<"citizen" | "woman"> = [
       "citizen",
       "woman",
-      "technician",
     ];
 
     // PNJs fixes (sur les trottoirs des nouvelles routes)
