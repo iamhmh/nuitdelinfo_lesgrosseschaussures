@@ -9,7 +9,6 @@ interface SnakeSegment {
 }
 
 export class SnakeGame {
-  private scene: Phaser.Scene;
   private gameWidth: number;
   private gameHeight: number;
   private gameX: number;
@@ -42,7 +41,6 @@ export class SnakeGame {
     width: number,
     height: number
   ) {
-    this.scene = scene;
     this.gameWidth = width;
     this.gameHeight = height;
     this.gameX = x;
@@ -82,6 +80,9 @@ export class SnakeGame {
 
     // Initialiser le jeu
     this.initializeGame();
+
+    // Dessiner l'état initial
+    this.draw();
 
     // Écouter les contrôles clavier
     this.setupControls();
@@ -126,22 +127,33 @@ export class SnakeGame {
   }
 
   private setupControls(): void {
-    this.scene.input.keyboard?.on("keydown", (event: KeyboardEvent) => {
-      const key = event.key.toUpperCase();
+    // Écouter les événements clavier directement
+    window.addEventListener("keydown", (event: KeyboardEvent) => {
+      if (!this.gameRunning) return;
+
+      const key = event.key.toLowerCase();
 
       // Empêcher le changement de direction vers la direction opposée
-      if (key === "ARROWUP" || key === "W") {
-        if (this.direction.y === 0) this.nextDirection = { x: 0, y: -1 };
-        event.preventDefault();
-      } else if (key === "ARROWDOWN" || key === "S") {
-        if (this.direction.y === 0) this.nextDirection = { x: 0, y: 1 };
-        event.preventDefault();
-      } else if (key === "ARROWLEFT" || key === "A") {
-        if (this.direction.x === 0) this.nextDirection = { x: -1, y: 0 };
-        event.preventDefault();
-      } else if (key === "ARROWRIGHT" || key === "D") {
-        if (this.direction.x === 0) this.nextDirection = { x: 1, y: 0 };
-        event.preventDefault();
+      if (key === "arrowup" || key === "w") {
+        if (this.direction.y === 0) {
+          this.nextDirection = { x: 0, y: -1 };
+          event.preventDefault();
+        }
+      } else if (key === "arrowdown" || key === "s") {
+        if (this.direction.y === 0) {
+          this.nextDirection = { x: 0, y: 1 };
+          event.preventDefault();
+        }
+      } else if (key === "arrowleft" || key === "a") {
+        if (this.direction.x === 0) {
+          this.nextDirection = { x: -1, y: 0 };
+          event.preventDefault();
+        }
+      } else if (key === "arrowright" || key === "d") {
+        if (this.direction.x === 0) {
+          this.nextDirection = { x: 1, y: 0 };
+          event.preventDefault();
+        }
       }
     });
   }

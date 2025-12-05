@@ -64,10 +64,11 @@ export default function GamePage() {
   }
 
   const [isStarting, setIsStarting] = useState(false)
-  let snakeGameInstance: any = null
 
   // Gérer l'ouverture/fermeture du jeu Snake
   useEffect(() => {
+    let snakeGameInstance: any = null
+
     if (showSnakeGame) {
       // Importer Phaser et créer une instance du jeu Snake
       import('phaser').then((Phaser) => {
@@ -76,6 +77,7 @@ export default function GamePage() {
           // Dynamiquement importer et créer le jeu
           import('../game/scenes/SnakeGameScene.ts').then(({ SnakeGameScene }) => {
             try {
+              console.log('Creating SnakeGame instance...')
               snakeGameInstance = new Phaser.Game({
                 type: Phaser.WEBGL,
                 parent: container,
@@ -99,6 +101,7 @@ export default function GamePage() {
                   antialias: false,
                 },
               })
+              console.log('SnakeGame instance created successfully')
             } catch (error) {
               console.error('Erreur lors du chargement du jeu Snake:', error)
             }
@@ -122,8 +125,8 @@ export default function GamePage() {
         window.removeEventListener('keydown', handleEsc)
         // Détruire l'instance du jeu quand on ferme la modal
         if (snakeGameInstance) {
+          console.log('Destroying SnakeGame instance...')
           snakeGameInstance.destroy(true)
-          snakeGameInstance = null
         }
       }
     }
