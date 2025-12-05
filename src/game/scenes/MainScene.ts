@@ -19,6 +19,13 @@ interface CollectibleComputer {
   interactIcon?: Phaser.GameObjects.Image
 }
 
+// Compteur de PC distribués par école
+interface SchoolDelivery {
+  buildingName: string
+  count: number
+  maxCount: number
+}
+
 interface NPC {
   sprite: Phaser.GameObjects.Sprite
   type: 'citizen' | 'woman' | 'technician'
@@ -122,6 +129,15 @@ export class MainScene extends Phaser.Scene {
   private nearBuilding: Building | null = null
   private nearComputer: CollectibleComputer | null = null
   
+  // Suivi des PC distribués par école (max 2 par école)
+  private schoolDeliveries: Map<string, SchoolDelivery> = new Map()
+  
+  // Sprite du PC porté par le joueur
+  private carriedPCSprite: Phaser.GameObjects.Image | null = null
+  
+  // État de l'atelier intérieur
+  private isInsideWorkshop: boolean = false
+  
   // Debug
   private debugText!: Phaser.GameObjects.Text
   private debugGridContainer!: Phaser.GameObjects.Container
@@ -165,6 +181,11 @@ export class MainScene extends Phaser.Scene {
     
     // Réinitialiser le debug
     this.debugGridVisible = true
+    
+    // Réinitialiser les nouvelles propriétés
+    this.schoolDeliveries = new Map()
+    this.carriedPCSprite = null
+    this.isInsideWorkshop = false
   }
 
   create(): void {
@@ -186,6 +207,7 @@ export class MainScene extends Phaser.Scene {
     this.createAnimations()
     this.setupEvents()
     this.setupPauseEvents() // Écouter les événements pause/restart de React
+    this.setupWorkshopEvents() // Écouter le retour de WorkshopScene
     this.createDebugUI()
     
     this.physics.world.setBounds(0, 0, this.mapWidth, this.mapHeight)
@@ -199,6 +221,15 @@ export class MainScene extends Phaser.Scene {
         distributed: this.distributedCount,
         inventory: this.inventory
       })
+    })
+  }
+  
+  /**
+   * Configure les événements de retour de WorkshopScene
+   */
+  private setupWorkshopEvents(): void {
+    this.events.on('workshopComplete', (data: { pcsRepaired: number, collectedCount: number, reconditionedCount: number, distributedCount: number }) => {
+      this.onWorkshopComplete(data)
     })
   }
   
@@ -1021,6 +1052,119 @@ export class MainScene extends Phaser.Scene {
       const py = pos.ty * this.tileSize + 64
       this.add.image(px, py, 'sign').setOrigin(0.5, 1).setDepth(py)
     })
+    
+    // Arrêts de bus
+    const busStopPositions = [
+      { tx: 23, ty: 14 },  // Arrêt route H15
+      { tx: 37, ty: 14 },
+      { tx: 23, ty: 33 },  // Arrêt route H30
+      { tx: 37, ty: 33 },
+    ]
+    busStopPositions.forEach(pos => {
+      const px = pos.tx * this.tileSize + 32
+      const py = pos.ty * this.tileSize + 64
+      this.add.image(px, py, 'bus_stop').setOrigin(0.5, 1).setDepth(py)
+    })
+    
+    // Boîtes aux lettres près des maisons
+    const mailboxPositions = [
+      { tx: 5, ty: 23 },
+      { tx: 17, ty: 23 },
+      { tx: 28, ty: 23 },
+      { tx: 54, ty: 25 },
+    ]
+    mailboxPositions.forEach(pos => {
+      if (!this.isTileOnRoadOrBuilding(pos.tx, pos.ty)) {
+        const px = pos.tx * this.tileSize + 32
+        const py = pos.ty * this.tileSize + 48
+        this.add.image(px, py, 'mailbox').setOrigin(0.5, 1).setDepth(py)
+      }
+    })
+    
+    // Parcs avec arbres groupés et bancs
+    this.createParks()
+  }
+  
+  /**
+   * Crée des parcs avec des zones de verdure groupées
+   */
+  private createParks(): void {
+    // Parc dans la zone A (haut gauche)
+    this.createParkZone(12, 5, 'Parc du Numérique')
+    
+    // Parc dans la zone I (bas droite)
+    this.createParkZone(52, 37, 'Jardins Linux')
+    
+    // Mini-parcs près des écoles
+    this.createMiniPark(7, 42)
+    this.createMiniPark(16, 42)
+    this.createMiniPark(48, 42)
+  }
+  
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private createParkZone(centerTx: number, centerTy: number, _name: string): void {
+    const centerX = centerTx * this.tileSize + 32
+    const centerY = centerTy * this.tileSize + 32
+    
+    // Cercle d'arbres autour
+    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
+      const tx = centerTx + Math.round(Math.cos(angle) * 3)
+      const ty = centerTy + Math.round(Math.sin(angle) * 2)
+      if (!this.isTileOnRoadOrBuilding(tx, ty)) {
+        const px = tx * this.tileSize + 32
+        const py = ty * this.tileSize + 64
+        const treeType = Math.random() > 0.5 ? 'tree' : 'tree_pine'
+        this.add.image(px, py, treeType)
+          .setOrigin(0.5, 1)
+          .setDepth(py)
+          .setScale(0.8 + Math.random() * 0.3)
+      }
+    }
+    
+    // Bancs au centre
+    this.add.image(centerX - 30, centerY + 20, 'bench').setOrigin(0.5, 1).setDepth(centerY + 20)
+    this.add.image(centerX + 30, centerY + 20, 'bench').setOrigin(0.5, 1).setDepth(centerY + 20)
+    
+    // Fleurs autour
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2
+      const distance = 40 + Math.random() * 30
+      const fx = centerX + Math.cos(angle) * distance
+      const fy = centerY + Math.sin(angle) * distance
+      const flowerType = Math.random() > 0.5 ? 'flower' : 'flower_yellow'
+      this.add.image(fx, fy, flowerType)
+        .setOrigin(0.5, 1)
+        .setDepth(fy - 10)
+        .setScale(0.5 + Math.random() * 0.3)
+    }
+  }
+  
+  private createMiniPark(tx: number, ty: number): void {
+    if (this.isTileOnRoadOrBuilding(tx, ty)) return
+    
+    const px = tx * this.tileSize + 32
+    const py = ty * this.tileSize + 48
+    
+    // Arbre central
+    this.add.image(px, py + 16, Math.random() > 0.5 ? 'tree' : 'tree_pine')
+      .setOrigin(0.5, 1)
+      .setDepth(py + 16)
+      .setScale(0.7)
+    
+    // Buissons autour
+    this.add.image(px - 25, py + 10, 'bush').setOrigin(0.5, 1).setDepth(py + 10).setScale(0.5)
+    this.add.image(px + 25, py + 10, 'bush').setOrigin(0.5, 1).setDepth(py + 10).setScale(0.5)
+    
+    // Quelques fleurs
+    for (let i = 0; i < 4; i++) {
+      const angle = (i / 4) * Math.PI * 2
+      const fx = px + Math.cos(angle) * 20
+      const fy = py + Math.sin(angle) * 15
+      this.add.image(fx, fy, i % 2 === 0 ? 'flower' : 'flower_yellow')
+        .setOrigin(0.5, 1)
+        .setDepth(fy - 5)
+        .setScale(0.4)
+    }
   }
 
   // ==================== UTILITAIRES ====================
@@ -1366,6 +1510,9 @@ export class MainScene extends Phaser.Scene {
   private handleMovement(): void {
     if (!this.player || !this.player.body || !this.player.active) return
     
+    // Ne pas bouger si on est dans l'atelier
+    if (this.isInsideWorkshop) return
+    
     const body = this.player.body as Phaser.Physics.Arcade.Body
     body.setVelocity(0)
     
@@ -1398,6 +1545,14 @@ export class MainScene extends Phaser.Scene {
     } else {
       this.player.stop()
       this.player.setTexture('player_idle')
+    }
+    
+    // Mettre à jour la position du PC porté
+    if (this.carriedPCSprite && this.carriedPCSprite.active) {
+      // Le PC est porté devant le personnage (côté où il regarde)
+      const offsetX = this.player.flipX ? -20 : 20
+      this.carriedPCSprite.setPosition(this.player.x + offsetX, this.player.y - 25)
+      this.carriedPCSprite.setDepth(this.player.depth + 1)
     }
   }
 
@@ -1639,6 +1794,9 @@ export class MainScene extends Phaser.Scene {
       onComplete: () => text.destroy()
     })
     
+    // Mettre à jour le sprite du PC porté
+    this.updateCarriedPC()
+    
     this.events.emit('updateStats', {
       collected: this.collectedCount,
       reconditioned: this.reconditionedCount,
@@ -1665,12 +1823,19 @@ export class MainScene extends Phaser.Scene {
         break
         
       case 'school':
-        if (this.reconditionedCount > this.distributedCount) {
+      case 'university': {
+        // Vérifier combien de PC ont déjà été distribués à cette école
+        const delivery = this.schoolDeliveries.get(building.name) || { buildingName: building.name, count: 0, maxCount: 2 }
+        
+        if (delivery.count >= delivery.maxCount) {
+          this.events.emit('showMessage', `${building.name}: "Merci ! Nous avons déjà nos ${delivery.maxCount} ordinateurs !" ✅`)
+        } else if (this.reconditionedCount > this.distributedCount) {
           this.distributeComputer(building)
         } else {
           this.events.emit('showMessage', `${building.name}: "Nous attendons des ordinateurs !"`)
         }
         break
+      }
         
       default:
         this.events.emit('showMessage', `${building.name}`)
@@ -1680,12 +1845,73 @@ export class MainScene extends Phaser.Scene {
 
   private reconditionComputers(): void {
     const count = this.inventory
-    this.inventory = 0
-    this.reconditionedCount += count
     
+    // Lancer la scène de l'atelier
+    this.enterWorkshop(count)
+  }
+  
+  /**
+   * Lance la scène WorkshopScene pour le reconditionnement
+   */
+  private enterWorkshop(pcCount: number): void {
+    this.isInsideWorkshop = true
+    
+    // Masquer le joueur et désactiver les contrôles
+    this.player.setVisible(false)
+    const body = this.player.body as Phaser.Physics.Arcade.Body
+    body.setVelocity(0)
+    
+    // Écran noir de transition
+    const blackScreen = this.add.rectangle(
+      this.cameras.main.scrollX + this.cameras.main.width / 2,
+      this.cameras.main.scrollY + this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000
+    ).setDepth(10000).setAlpha(0).setScrollFactor(0)
+    
+    // Fade to black puis lancer WorkshopScene
+    this.tweens.add({
+      targets: blackScreen,
+      alpha: 1,
+      duration: 500,
+      onComplete: () => {
+        blackScreen.destroy()
+        
+        // Mettre cette scène en pause
+        this.scene.pause('MainScene')
+        this.scene.pause('UIScene')
+        
+        // Lancer la scène de l'atelier avec les données
+        this.scene.launch('WorkshopScene', {
+          pcCount: pcCount,
+          collectedCount: this.collectedCount,
+          reconditionedCount: this.reconditionedCount,
+          distributedCount: this.distributedCount
+        })
+      }
+    })
+  }
+  
+  /**
+   * Appelé quand on revient de WorkshopScene
+   */
+  private onWorkshopComplete(data: { pcsRepaired: number, collectedCount: number, reconditionedCount: number, distributedCount: number }): void {
+    // Mettre à jour les compteurs
+    this.inventory = 0
+    this.reconditionedCount = data.reconditionedCount
+    
+    // Mettre à jour le PC porté
+    this.updateCarriedPC()
+    
+    // Réafficher le joueur
+    this.player.setVisible(true)
+    this.isInsideWorkshop = false
+    
+    // Afficher le message de sortie
     const workshop = this.buildings.find(b => b.type === 'workshop')
     if (workshop) {
-      const text = this.add.text(workshop.x, workshop.y - 80, `+${count} PC Linux ! 🐧`, {
+      const text = this.add.text(workshop.x, workshop.y - 80, `+${data.pcsRepaired} PC Linux ! 🐧`, {
         fontSize: '22px',
         color: '#22c55e',
         fontStyle: 'bold',
@@ -1707,14 +1933,22 @@ export class MainScene extends Phaser.Scene {
       inventory: this.inventory,
     })
     
-    this.events.emit('showMessage', `🎉 ${count} PC reconditionnés ! Distribuez-les aux écoles.`)
+    this.events.emit('showMessage', `🎉 ${data.pcsRepaired} PC reconditionnés ! Distribuez-les aux écoles.`)
   }
 
   private distributeComputer(school: Building): void {
+    // Mettre à jour le compteur de l'école
+    const delivery = this.schoolDeliveries.get(school.name) || { buildingName: school.name, count: 0, maxCount: 2 }
+    delivery.count++
+    this.schoolDeliveries.set(school.name, delivery)
+    
     this.distributedCount++
     
+    // Position fixe pour les 2 PC (pas aléatoire)
+    const offsetX = delivery.count === 1 ? -25 : 25
+    
     const pc = this.add.image(
-      school.x + (Math.random() - 0.5) * 60,
+      school.x + offsetX,
       school.y + 40,
       'computer_new'
     ).setScale(0).setDepth(school.y + 50)
@@ -1726,7 +1960,10 @@ export class MainScene extends Phaser.Scene {
       ease: 'Back.easeOut'
     })
     
-    const text = this.add.text(school.x, school.y - 40, '🎉 +1 PC distribué !', {
+    const remainingSlots = delivery.maxCount - delivery.count
+    const statusText = remainingSlots > 0 ? `(${remainingSlots} place restante)` : '(complet !)'
+    
+    const text = this.add.text(school.x, school.y - 40, `🎉 +1 PC distribué ! ${statusText}`, {
       fontSize: '18px',
       color: '#ec4899',
       fontStyle: 'bold',
@@ -1740,6 +1977,9 @@ export class MainScene extends Phaser.Scene {
       onComplete: () => text.destroy()
     })
     
+    // Mettre à jour le sprite du PC porté
+    this.updateCarriedPC()
+    
     this.events.emit('updateStats', {
       collected: this.collectedCount,
       reconditioned: this.reconditionedCount,
@@ -1749,8 +1989,33 @@ export class MainScene extends Phaser.Scene {
     
     this.events.emit('showMessage', `PC offert à ${school.name} ! 🐧`)
     
-    if (this.distributedCount >= 8) {
+    // Victoire si toutes les écoles ont 2 PC (5 écoles * 2 = 10 PC)
+    if (this.distributedCount >= 10) {
       this.events.emit('victory')
+    }
+  }
+  
+  /**
+   * Met à jour le sprite du PC porté par le joueur
+   */
+  private updateCarriedPC(): void {
+    // Détruire l'ancien sprite s'il existe
+    if (this.carriedPCSprite) {
+      this.carriedPCSprite.destroy()
+      this.carriedPCSprite = null
+    }
+    
+    // Si le joueur a des PC non reconditionnés, afficher un PC obsolète
+    if (this.inventory > 0) {
+      this.carriedPCSprite = this.add.image(0, 0, 'computer_old')
+        .setScale(0.8)
+        .setDepth(9998)
+    }
+    // Si le joueur a des PC reconditionnés à distribuer, afficher un PC neuf
+    else if (this.reconditionedCount > this.distributedCount) {
+      this.carriedPCSprite = this.add.image(0, 0, 'computer_new')
+        .setScale(0.8)
+        .setDepth(9998)
     }
   }
 }

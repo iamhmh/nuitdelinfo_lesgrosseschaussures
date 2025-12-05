@@ -553,12 +553,6 @@ export class BootScene extends Phaser.Scene {
     carColors.forEach(car => {
       g.clear()
       
-      // Ombre au sol
-      g.fillStyle(0x000000)
-      g.setAlpha(0.25)
-      g.fillEllipse(40, 58, 60, 16)
-      g.setAlpha(1)
-      
       // === VUE 3/4 ARRIÈRE - Voiture avec perspective ===
       
       // Partie basse du corps (dessous)
