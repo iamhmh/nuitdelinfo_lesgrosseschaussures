@@ -1,22 +1,25 @@
-import Phaser from 'phaser'
-import { BootScene } from './scenes/BootScene.ts'
-import { MainScene } from './scenes/MainScene.ts'
-import { UIScene } from './scenes/UIScene.ts'
+import Phaser from "phaser";
+import { BootScene } from "./scenes/BootScene.ts";
+import { MainScene } from "./scenes/MainScene.ts";
+import { UIScene } from "./scenes/UIScene.ts";
+import { SnakeGameScene } from "./scenes/SnakeGameScene.ts";
 
-export const createPhaserConfig = (parent: HTMLElement): Phaser.Types.Core.GameConfig => ({
+export const createPhaserConfig = (
+  parent: HTMLElement
+): Phaser.Types.Core.GameConfig => ({
   type: Phaser.WEBGL,
   parent: parent,
   width: 1280,
   height: 720,
-  backgroundColor: '#4a7c59',
+  backgroundColor: "#4a7c59",
   physics: {
-    default: 'arcade',
+    default: "arcade",
     arcade: {
       gravity: { x: 0, y: 0 },
       debug: false,
     },
   },
-  scene: [BootScene, MainScene, UIScene],
+  scene: [BootScene, MainScene, UIScene, SnakeGameScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -25,4 +28,4 @@ export const createPhaserConfig = (parent: HTMLElement): Phaser.Types.Core.GameC
     pixelArt: true,
     antialias: false,
   },
-})
+});

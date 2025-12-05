@@ -12,6 +12,7 @@ export default function GamePage() {
   const [isPaused, setIsPaused] = useState(false)
   const [showHowToPlay, setShowHowToPlay] = useState(false)
   const [showControls, setShowControls] = useState(false)
+  const [showSnakeGame, setShowSnakeGame] = useState(false)
 
   // Chargement réel de 0 à 100%
   useEffect(() => {
@@ -63,6 +64,70 @@ export default function GamePage() {
   }
 
   const [isStarting, setIsStarting] = useState(false)
+  let snakeGameInstance: any = null
+
+  // Gérer l'ouverture/fermeture du jeu Snake
+  useEffect(() => {
+    if (showSnakeGame) {
+      // Importer Phaser et créer une instance du jeu Snake
+      import('phaser').then((Phaser) => {
+        const container = document.getElementById('snake-game-container')
+        if (container) {
+          // Dynamiquement importer et créer le jeu
+          import('../game/scenes/SnakeGameScene.ts').then(({ SnakeGameScene }) => {
+            try {
+              snakeGameInstance = new Phaser.Game({
+                type: Phaser.WEBGL,
+                parent: container,
+                width: window.innerWidth,
+                height: window.innerHeight,
+                backgroundColor: '#0f172a',
+                physics: {
+                  default: 'arcade',
+                  arcade: {
+                    gravity: { x: 0, y: 0 },
+                    debug: false,
+                  },
+                },
+                scene: [SnakeGameScene],
+                scale: {
+                  mode: Phaser.Scale.FIT,
+                  autoCenter: Phaser.Scale.CENTER_BOTH,
+                },
+                render: {
+                  pixelArt: true,
+                  antialias: false,
+                },
+              })
+            } catch (error) {
+              console.error('Erreur lors du chargement du jeu Snake:', error)
+            }
+          }).catch((error) => {
+            console.error('Erreur lors de l\'import de SnakeGameScene:', error)
+          })
+        }
+      }).catch((error) => {
+        console.error('Erreur lors de l\'import de Phaser:', error)
+      })
+
+      // Écouter ESC pour fermer
+      const handleEsc = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setShowSnakeGame(false)
+        }
+      }
+      window.addEventListener('keydown', handleEsc)
+
+      return () => {
+        window.removeEventListener('keydown', handleEsc)
+        // Détruire l'instance du jeu quand on ferme la modal
+        if (snakeGameInstance) {
+          snakeGameInstance.destroy(true)
+          snakeGameInstance = null
+        }
+      }
+    }
+  }, [showSnakeGame])
 
   const handleStartGame = () => {
     setIsStarting(true)
@@ -598,7 +663,7 @@ export default function GamePage() {
 
       {/* Indicateur de pause en haut */}
       {!isLoading && !isPaused && !showHowToPlay && (
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-4 right-4 z-10" style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={() => setIsPaused(true)}
             style={{
@@ -623,6 +688,93 @@ export default function GamePage() {
             }}
           >
             ⏸ PAUSE [Q]
+          </button>
+
+          {/* Bouton Snake à droite du bouton Pause */}
+          <button
+            onClick={() => setShowSnakeGame(true)}
+            style={{
+              padding: '10px 12px',
+              background: 'rgba(2,6,23,0.75)',
+              border: '1px solid #475569',
+              borderRadius: '8px',
+              color: '#94a3b8',
+              fontFamily: 'monospace',
+              fontSize: '14px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#22c55e'
+              e.currentTarget.style.color = '#22c55e'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#475569'
+              e.currentTarget.style.color = '#94a3b8'
+            }}
+            title="Ouvrir Snake (maquette)"
+          >
+            📱 SNAKE
+          </button>
+        </div>
+      )}
+
+      {/* Modal Snake Game - Nouvelle page */}
+      {showSnakeGame && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: '#0f172a',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            flexDirection: 'column'
+          }}
+        >
+          {/* ID pour que Phaser puisse monter le jeu dedans */}
+          <div
+            id="snake-game-container"
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          />
+
+          {/* Bouton fermer en overlay */}
+          <button
+            onClick={() => setShowSnakeGame(false)}
+            style={{
+              position: 'absolute',
+              bottom: 30,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              padding: '12px 24px',
+              background: '#22c55e',
+              color: '#0f172a',
+              border: 'none',
+              borderRadius: '8px',
+              fontFamily: 'monospace',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#16a34a'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#22c55e'
+            }}
+          >
+            [ ESC ] Retour au jeu
           </button>
         </div>
       )}
