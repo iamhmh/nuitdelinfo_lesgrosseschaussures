@@ -87,7 +87,7 @@ interface OccupiedZone {
 
 export class MainScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite
-  private playerSpeed: number = 180
+  private playerSpeed: number = 280
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key }
   private interactKey!: Phaser.Input.Keyboard.Key
@@ -1633,11 +1633,14 @@ export class MainScene extends Phaser.Scene {
       if (!car.sprite || !car.sprite.active) return
       
       // Vérifier si la voiture doit s'arrêter au feu rouge
-      const mustStop = this.shouldCarStop(car)
+      const mustStopAtLight = this.shouldCarStop(car)
       
-      // Vitesse actuelle (avec arrêt progressif aux feux)
+      // Vérifier si le joueur est devant la voiture
+      const mustStopForPlayer = this.isPlayerInFrontOfCar(car)
+      
+      // Vitesse actuelle (arrêt pour feu rouge ou piéton)
       let currentSpeed = car.baseSpeed
-      if (mustStop) {
+      if (mustStopAtLight || mustStopForPlayer) {
         currentSpeed = 0
       }
       
@@ -1660,6 +1663,52 @@ export class MainScene extends Phaser.Scene {
     
     // Vérifier les collisions manuellement avec le joueur
     this.checkCarCollisions()
+  }
+  
+  /**
+   * Vérifie si le joueur est devant la voiture (dans sa trajectoire)
+   * La voiture s'arrête si le joueur est à moins de 80px devant elle
+   */
+  private isPlayerInFrontOfCar(car: Car): boolean {
+    if (!this.player || !this.player.active) return false
+    
+    const playerX = this.player.x
+    const playerY = this.player.y - 20 // Centre du joueur
+    const carX = car.sprite.x
+    const carY = car.sprite.y
+    
+    const stopDistance = 80 // Distance à laquelle la voiture s'arrête
+    const laneWidth = 40 // Largeur de détection de la voie
+    
+    if (car.direction === 'h') {
+      // Voiture horizontale
+      // Vérifier si le joueur est sur la même voie (même Y approximativement)
+      const sameY = Math.abs(playerY - carY) < laneWidth
+      if (!sameY) return false
+      
+      // Vérifier si le joueur est devant la voiture selon sa direction
+      if (car.baseSpeed > 0) {
+        // Va vers la droite - joueur doit être à droite
+        return playerX > carX && playerX < carX + stopDistance
+      } else {
+        // Va vers la gauche - joueur doit être à gauche
+        return playerX < carX && playerX > carX - stopDistance
+      }
+    } else {
+      // Voiture verticale
+      // Vérifier si le joueur est sur la même voie (même X approximativement)
+      const sameX = Math.abs(playerX - carX) < laneWidth
+      if (!sameX) return false
+      
+      // Vérifier si le joueur est devant la voiture selon sa direction
+      if (car.baseSpeed > 0) {
+        // Va vers le bas - joueur doit être en dessous
+        return playerY > carY && playerY < carY + stopDistance
+      } else {
+        // Va vers le haut - joueur doit être au-dessus
+        return playerY < carY && playerY > carY - stopDistance
+      }
+    }
   }
   
   /**
@@ -2020,9 +2069,20 @@ export class MainScene extends Phaser.Scene {
     
     this.events.emit('showMessage', `PC offert à ${school.name} ! 🐧`)
     
-    // Victoire si toutes les écoles ont 2 PC (5 écoles * 2 = 10 PC)
-    if (this.distributedCount >= 10) {
-      this.events.emit('victory')
+    // Victoire si tous les 8 PC ont été distribués
+    if (this.distributedCount >= 8) {
+      console.log('🎉 VICTOIRE! Tous les PC ont été distribués:', this.distributedCount)
+      // Délai pour laisser le temps aux animations de se terminer
+      this.time.delayedCall(500, () => {
+        console.log('🎉 Émission de l\'événement victory...')
+        this.events.emit('victory')
+        // Backup: appeler directement UIScene si l'événement ne fonctionne pas
+        const uiScene = this.scene.get('UIScene') as Phaser.Scene & { showVictory?: () => void }
+        if (uiScene && typeof uiScene.showVictory === 'function') {
+          console.log('🎉 Appel direct de UIScene.showVictory()')
+          uiScene.showVictory()
+        }
+      })
     }
   }
   

@@ -67,6 +67,7 @@ export class UIScene extends Phaser.Scene {
     })
     
     this.mainScene.events.on('victory', () => {
+      console.log('🎉 UIScene: Événement victory reçu!')
       this.showVictory()
     })
   }
@@ -239,7 +240,9 @@ export class UIScene extends Phaser.Scene {
     this.interactHint.setVisible(false)
   }
 
-  private showVictory(): void {
+  public showVictory(): void {
+    console.log('🎉 UIScene: showVictory() appelé!')
+    
     // Overlay sombre
     const overlay = this.add.rectangle(
       this.cameras.main.width / 2,
