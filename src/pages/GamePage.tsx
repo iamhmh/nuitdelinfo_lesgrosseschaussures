@@ -158,6 +158,16 @@ export default function GamePage() {
     return () => window.removeEventListener('showDialog', handleShowDialog)
   }, [])
 
+  // Écouter l'événement snakeGameRequested émis par MainScene
+  useEffect(() => {
+    const handleSnakeGameRequested = () => {
+      setShowSnakeGame(true)
+    }
+
+    window.addEventListener('snakeGameRequested', handleSnakeGameRequested)
+    return () => window.removeEventListener('snakeGameRequested', handleSnakeGameRequested)
+  }, [])
+
   const handleStartGame = () => {
     setIsStarting(true)
     // Transition de 2 secondes avant de lancer le jeu

@@ -34,6 +34,7 @@ interface SpecialObject {
   sprite?: Phaser.GameObjects.Image;
   interactIcon?: Phaser.GameObjects.Image;
   interacted: boolean;
+  phoneFound: boolean; // Tux a retrouvé son téléphone
   phone?: {
     sprite?: Phaser.GameObjects.Image;
     interactIcon?: Phaser.GameObjects.Image;
@@ -164,6 +165,10 @@ export class MainScene extends Phaser.Scene {
   private carriedPCSprite: Phaser.GameObjects.Image | null = null;
   // Sprite du 2e PC porté par le joueur (bras gauche)
   private carriedPCSprite2: Phaser.GameObjects.Image | null = null;
+  // Sprite du téléphone porté par le joueur
+  private carriedPhoneSprite: Phaser.GameObjects.Image | null = null;
+  // Flag pour savoir si le joueur porte un téléphone
+  private isCarryingPhone: boolean = false;
 
   // État de l'atelier intérieur
   private isInsideWorkshop: boolean = false;
@@ -842,6 +847,7 @@ export class MainScene extends Phaser.Scene {
         y: tuxY,
         type: "tux",
         interacted: false,
+        phoneFound: false,
       });
     }
 
@@ -1926,6 +1932,19 @@ export class MainScene extends Phaser.Scene {
       );
       this.carriedPCSprite2.setDepth(this.player.depth + 1);
     }
+    // Mettre à jour la position du téléphone porté
+    if (
+      this.carriedPhoneSprite &&
+      this.carriedPhoneSprite.active &&
+      this.isCarryingPhone
+    ) {
+      const offsetX = this.player.flipX ? -18 : 18;
+      this.carriedPhoneSprite.setPosition(
+        this.player.x + offsetX,
+        this.player.y - 28
+      );
+      this.carriedPhoneSprite.setDepth(this.player.depth + 1);
+    }
   }
 
   private checkProximity(): void {
@@ -1987,21 +2006,8 @@ export class MainScene extends Phaser.Scene {
 
     // Vérifier la proximité avec les objets spéciaux
     for (const obj of this.specialObjects) {
-      if (obj.interacted) continue;
-      const dist = Phaser.Math.Distance.Between(
-        this.player.x,
-        this.player.y,
-        obj.x,
-        obj.y
-      );
-      if (dist < 60) {
-        this.nearSpecialObject = obj;
-        if (obj.interactIcon) obj.interactIcon.setVisible(true);
-        break;
-      }
-
-      // Vérifier la proximité du téléphone si présent
-      if (obj.phone && obj.phone.sprite) {
+      // Vérifier la proximité du téléphone SEULEMENT si on ne le porte pas
+      if (obj.phone && obj.phone.sprite && !this.isCarryingPhone) {
         const phoneDist = Phaser.Math.Distance.Between(
           this.player.x,
           this.player.y,
@@ -2015,6 +2021,29 @@ export class MainScene extends Phaser.Scene {
         } else if (obj.phone.interactIcon) {
           obj.phone.interactIcon.setVisible(false);
         }
+      }
+
+      // Vérifier la proximité avec Tux lui-même
+      // Interactif si: pas encore interagi OU si porte le téléphone à retrouver
+      if (obj.interacted && !this.isCarryingPhone && !obj.phoneFound) {
+        // Tux a été interagi, pas de téléphone en main, et il n'y a rien à faire
+        continue;
+      }
+
+      const dist = Phaser.Math.Distance.Between(
+        this.player.x,
+        this.player.y,
+        obj.x,
+        obj.y
+      );
+      if (dist < 60) {
+        this.nearSpecialObject = obj;
+        if (obj.interactIcon) obj.interactIcon.setVisible(true);
+        break;
+      }
+
+      if (obj.interactIcon) {
+        obj.interactIcon.setVisible(false);
       }
     }
   }
@@ -2321,30 +2350,61 @@ export class MainScene extends Phaser.Scene {
 
   private interactWithSpecialObject(obj: SpecialObject): void {
     if (obj.type === "tux") {
-      // Ouverture de la boîte de dialogue de Tux avec boutons Oui/Non
-      const dialogMessage =
-        "Bonjour jeune NIRDien ! Merci de contribuer à la réutilisation des ordinateurs avec Linux. J'ai besoin d'aide pour retrouver mon Nokia 3310 perdu en ville. Peux-tu m'aider ?";
+      // Si le joueur porte le téléphone et que Tux le cherchait, afficher le message de remerciement
+      if (this.isCarryingPhone && obj.phoneFound) {
+        const thankYouMessage =
+          "Merci beaucoup ! 🐧 Mon Nokia 3310 me manquait tellement ! Tu es un vrai héros du Linux. Voici ta récompense !";
 
-      const handleYes = () => {
-        this.spawnPhone();
-      };
+        console.log("Tux mercie le joueur pour le téléphone");
 
-      const handleNo = () => {
-        // L'utilisateur refuse - rien ne se passe
-      };
+        window.dispatchEvent(
+          new CustomEvent("showDialog", {
+            detail: {
+              character: "Tux",
+              message: thankYouMessage,
+              icon: "🐧",
+            },
+          })
+        );
 
-      window.dispatchEvent(
-        new CustomEvent("showDialog", {
-          detail: {
-            character: "Tux",
-            message: dialogMessage,
-            icon: "🐧",
-            showButtons: true,
-            onYesCallback: handleYes,
-            onNoCallback: handleNo,
-          },
-        })
-      );
+        // Détruire le téléphone porté
+        if (this.carriedPhoneSprite) {
+          this.carriedPhoneSprite.destroy();
+          this.carriedPhoneSprite = null;
+        }
+        this.isCarryingPhone = false;
+        obj.phoneFound = false;
+
+        return;
+      }
+
+      // Premier contact: demande d'aide pour retrouver le téléphone
+      if (!obj.interacted) {
+        const dialogMessage =
+          "Bonjour jeune NIRDien ! Merci de contribuer à la réutilisation des ordinateurs avec Linux. J'ai besoin d'aide pour retrouver mon Nokia 3310 perdu en ville. Peux-tu m'aider ?";
+
+        const handleYes = () => {
+          obj.interacted = true;
+          this.spawnPhone();
+        };
+
+        const handleNo = () => {
+          // L'utilisateur refuse - rien ne se passe
+        };
+
+        window.dispatchEvent(
+          new CustomEvent("showDialog", {
+            detail: {
+              character: "Tux",
+              message: dialogMessage,
+              icon: "🐧",
+              showButtons: true,
+              onYesCallback: handleYes,
+              onNoCallback: handleNo,
+            },
+          })
+        );
+      }
     }
   }
 
@@ -2420,6 +2480,7 @@ export class MainScene extends Phaser.Scene {
         sprite: phoneSprite,
         interactIcon: interactIcon,
       };
+      specialObject.phoneFound = true;
     }
   }
 
@@ -2429,11 +2490,31 @@ export class MainScene extends Phaser.Scene {
       (obj) => obj.type === "tux" && obj.phone
     );
     if (tuxObj && tuxObj.phone) {
-      // Détruire le téléphone
-      tuxObj.phone.sprite?.destroy();
-      tuxObj.phone.interactIcon?.destroy();
+      // Mettre le téléphone à la main du joueur
+      const phoneSprite = tuxObj.phone.sprite;
+      if (phoneSprite) {
+        phoneSprite.setPosition(this.player.x + 18, this.player.y - 28);
+        phoneSprite.setScale(1.5);
+        phoneSprite.setDepth(this.player.depth + 1);
+
+        // Arrêter les animations de bobbing
+        this.tweens.killTweensOf(phoneSprite);
+        if (tuxObj.phone.interactIcon) {
+          this.tweens.killTweensOf(tuxObj.phone.interactIcon);
+          tuxObj.phone.interactIcon.destroy();
+        }
+
+        // Sauvegarder le sprite du téléphone porté
+        this.carriedPhoneSprite = phoneSprite;
+        this.isCarryingPhone = true;
+      }
+
+      // Supprimer la référence du téléphone spawnné
       tuxObj.phone = undefined;
       this.nearSpecialObject = null;
+
+      // Déclencher le jeu Snake
+      window.dispatchEvent(new CustomEvent("snakeGameRequested"));
     }
   }
 
